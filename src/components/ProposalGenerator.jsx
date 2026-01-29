@@ -193,8 +193,11 @@ const Step1 = ({
   useEffect(() => {
     const inletFlow = parseFloat(params.find(p => p.name === 'Flow')?.value || 0);
     const inletBOD = parseFloat(params.find(p => p.name === 'BOD')?.value || 0);
+    const inletSCOD = parseFloat(params.find(p => p.name === 'sCOD')?.value || 0);
+
     const anaFlow = parseFloat(anaerobicFeedParams.find(p => p.name === 'Flow')?.value || 0);
     const anaBOD = parseFloat(anaerobicFeedParams.find(p => p.name === 'BOD')?.value || 0);
+    const anaSCOD = parseFloat(anaerobicFeedParams.find(p => p.name === 'sCOD')?.value || 0);
 
     // New Params for N and P
     const inletN = parseFloat(params.find(p => p.name === 'NH4-N')?.value || 0);
@@ -205,6 +208,10 @@ const Step1 = ({
     const newInletBODLoad = calculateBODLoad(inletFlow, inletBOD);
     const newAnaBODLoad = calculateBODLoad(anaFlow, anaBOD);
 
+    // Reuse generic load calc logic: (Flow * Val) / 1000
+    const newInletSCODLoad = ((inletFlow * inletSCOD) / 1000).toFixed(2);
+    const newAnaSCODLoad = ((anaFlow * anaSCOD) / 1000).toFixed(2);
+
     // Calculate N and P loads
     const newInletNLoad = calculateNLoad(inletFlow, inletN);
     const newAnaNLoad = calculateNLoad(anaFlow, anaN);
@@ -214,6 +221,8 @@ const Step1 = ({
     if (
       clientInfo.inletBODLoad !== newInletBODLoad ||
       clientInfo.anaerobicBODLoad !== newAnaBODLoad ||
+      clientInfo.inletSCODLoad !== newInletSCODLoad ||
+      clientInfo.anaerobicSCODLoad !== newAnaSCODLoad ||
       clientInfo.inletNLoad !== newInletNLoad ||
       clientInfo.anaerobicNLoad !== newAnaNLoad ||
       clientInfo.inletPLoad !== newInletPLoad ||
@@ -223,6 +232,8 @@ const Step1 = ({
         ...prev,
         inletBODLoad: newInletBODLoad,
         anaerobicBODLoad: newAnaBODLoad,
+        inletSCODLoad: newInletSCODLoad,
+        anaerobicSCODLoad: newAnaSCODLoad,
         inletNLoad: newInletNLoad,
         anaerobicNLoad: newAnaNLoad,
         inletPLoad: newInletPLoad,
@@ -230,6 +241,20 @@ const Step1 = ({
       }));
     }
   }, [params, anaerobicFeedParams]);
+
+  // Auto-calculate COD Load for Paper Industry
+  useEffect(() => {
+    if (clientInfo.industry !== 'Paper') return;
+
+    const cap = parseFloat(clientInfo.productionCapacity || 0);
+    const spec = parseFloat(clientInfo.specificCOD || 0);
+    // Formula: Capacity (TPD) * Specific COD (kg/ton) = kg/day
+    const calculated = (cap * spec).toFixed(2);
+
+    if (clientInfo.calcCODLoad !== calculated) {
+      setClientInfo(prev => ({ ...prev, calcCODLoad: calculated }));
+    }
+  }, [clientInfo.productionCapacity, clientInfo.specificCOD, clientInfo.industry]);
 
   const handleParamChange = (id, newValue) => {
     setParams(prevParams => {
@@ -478,7 +503,7 @@ const Step1 = ({
         </table>
       </div>
 
-      {anaerobicTank && (
+      {/* {anaerobicTank && (
         <div className="bg-white p-4 rounded-lg border border-emerald-100 shadow-sm mb-4">
           <h4 className="font-bold text-emerald-800 mb-2 border-b border-emerald-50 pb-2">Anaerobic Reactor Dimensions</h4>
           <div className="grid grid-cols-2 gap-4">
@@ -496,7 +521,7 @@ const Step1 = ({
             />
           </div>
         </div>
-      )}
+      )} */}
 
       <WarningBox warnings={warnings} />
 

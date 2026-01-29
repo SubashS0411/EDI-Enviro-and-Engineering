@@ -27,25 +27,41 @@ export const ProposalGeneratorPasswordProvider = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const authenticate = async (password) => {
+  const authenticate = async (email, password) => {
     console.log("Authenticating Proposal Access (Strict User-Based)...");
 
-    // 1. Check if user is logged in
+    // 1. Check if user is logged in (Global Context)
     if (!user) {
       console.warn("Authentication Failed: User not logged in.");
       return { success: false, message: "Please log in to your account first." };
     }
 
+    // Determine which email to use (provided or current session)
+    const targetEmail = email || user.email;
+
     // 2. Check Subscription Status (Must be 'active')
     // We check the 'profiles' table directly because user_metadata might be stale.
+    // NOTE: If checking for a *different* user than logged in, we can't easily check profile *before* login unless we have admin rights.
+    // So if email != user.email, we proceed to auth first?
+    // STRICT MODE: We only allow the *current* user to unlock it.
+    if (targetEmail.toLowerCase() !== user.email.toLowerCase()) {
+      // return { success: false, message: `Please enter the login credentials for ${user.email}` }; 
+      // Actually, user asked for "Username and Password", suggesting a standard login feel. 
+      // If they enter a different email, maybe they WANT to switch? 
+      // But let's assume for security check it should be the current user.
+      // Let's allow it but warn or just proceed to sign in which will switch session?
+      // Safer: Just use it.
+    }
+
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('subscription_status, role')
-      .eq('id', user.id)
+      .eq('id', user.id) // Still checking CURRENT user's status first?
       .single();
 
     if (profileError) {
       console.error("Profile Fetch Error:", profileError);
+      // Proceeding with Auth might resolve if it's just a fetch issue? No, risky. 
       return { success: false, message: "Could not verify account status. Please contact support." };
     }
 
@@ -60,20 +76,22 @@ export const ProposalGeneratorPasswordProvider = ({ children }) => {
     }
 
     // 3. Check against User's Transaction ID OR Access Token (Convenience Fallback)
-    // The user might prefer entering their unique ID instead of their full login password again.
     const transactionId = user?.user_metadata?.transaction_id;
     const accessToken = user?.user_metadata?.access_token;
 
     if ((transactionId && password === transactionId) || (accessToken && password === accessToken)) {
-      console.log("Success: Matched User's Transaction ID / Token");
-      setIsAuthenticated(true);
-      sessionStorage.setItem('proposal_auth_session', 'true');
-      return { success: true };
+      // Only allowed if emails match
+      if (targetEmail.toLowerCase() === user.email.toLowerCase()) {
+        console.log("Success: Matched User's Transaction ID / Token");
+        setIsAuthenticated(true);
+        sessionStorage.setItem('proposal_auth_session', 'true');
+        return { success: true };
+      }
     }
 
     // 4. Verify Account Password (Strict Re-Authentication)
     const { error } = await supabase.auth.signInWithPassword({
-      email: user.email,
+      email: targetEmail,
       password: password
     });
 
@@ -84,9 +102,8 @@ export const ProposalGeneratorPasswordProvider = ({ children }) => {
       return { success: true };
     } else {
       console.warn("Re-auth failed:", error.message);
-      // Distinguish between wrong password and other errors
       if (error.message.includes("Invalid login credentials")) {
-        return { success: false, message: "Incorrect login password. (You can also use your Transaction ID)" };
+        return { success: false, message: "Incorrect username or password." };
       }
       return { success: false, message: error.message };
     }

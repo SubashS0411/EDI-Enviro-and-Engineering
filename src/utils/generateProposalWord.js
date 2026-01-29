@@ -25,7 +25,7 @@ import { staticDesignBasis, staticGuarantees, theoryContent } from './proposalSt
 // --- Helpers for Safe Text Handling ---
 
 const safeString = (val) => {
-    if (val === null || val === undefined) return "-";
+    if (val === null || val === undefined || val === '') return "";
     return String(val);
 };
 
@@ -146,8 +146,8 @@ export const generateProposalWord = async (data) => {
             dafCoagulantDosingCalc = {},
             anaerobicTank = {},
             anaerobicFeedPump = {},
-            biomassPump = {}, // Added
-            biomassHoldingTank = {}, // Added
+            biomassPump = {},
+            biomassHoldingTank = {},
             biogasHolder = {},
             biogasFlare = {},
             aerationTank = {},
@@ -163,7 +163,7 @@ export const generateProposalWord = async (data) => {
             dosingSystems = {},
             dosingBreakdowns = {},
             screens = {},
-            preAcid = {}, // Added missing destructuring
+            preAcid = {},
             primaryClarifier = {},
             primaryClarifierMech = {},
             primarySludgePump = {},
@@ -208,13 +208,9 @@ export const generateProposalWord = async (data) => {
                                             children: imageBuffer ? [
                                                 new ImageRun({
                                                     data: imageBuffer,
-                                                    transformation: {
-                                                        width: 150,
-                                                        height: 50,
-                                                    },
+                                                    transformation: { width: 150, height: 50 },
                                                 })
                                             ] : [
-                                                // Fallback if image fails
                                                 createParagraph("EDI Enviro and Engineering", { textOptions: { bold: true, size: 24, color: "006400" } })
                                             ]
                                         })
@@ -285,349 +281,408 @@ export const generateProposalWord = async (data) => {
 
         sections.push(
             createHeading("Table of Contents"),
-            createParagraph("1. Design Details"),
-            createParagraph("2. Technology Overview"),
-            createParagraph("3. EDI Scope of Supply"),
-            createParagraph("4. Client Scope of Supply"),
-            createParagraph("5. Battery Limit"),
-            createParagraph("6. Exclusions"),
+            createParagraph("1. Client Details & Design Basis"),
+            createParagraph("2. Influent Parameters & Technology"),
+            createParagraph("3. Process Impact Analysis"),
+            createParagraph("4. Process Equipment Specifications"),
+            createParagraph("5. Exclusions"),
             new PageBreak()
         );
 
         // ==========================================
-        // THEORETICAL BACKGROUND (Before Section 1)
+        // SECTION 1: CLIENT DETAILS & DESIGN BASIS
         // ==========================================
 
-        // a) Impact of Bromide
         sections.push(
-            createHeading(theoryContent.bromide.title),
+            createHeading("1. Client Details & Design Basis"),
+            createSimpleTable(
+                ["Parameter", "Value"],
+                [
+                    ["Client Name", safeString(clientInfo.clientName)],
+                    ["Industry", safeString(clientInfo.industry)],
+                    ["Production Capacity", `${safeString(clientInfo.productionCapacity)} TPD`],
+                    ["Specific COD", `${safeString(clientInfo.specificCOD)} kg/ton`],
+                    ["Calculated COD Load", `${safeString(clientInfo.calcCODLoad)} kg/day`],
+                    ["Date", new Date().toLocaleDateString()]
+                ],
+                [40, 60]
+            ),
+            new PageBreak()
+        );
+
+        // ==========================================
+        // SECTION 2: INFLUENT PARAMETERS & TECHNOLOGY
+        // ==========================================
+
+        sections.push(
+            createHeading("2. Influent Parameters"),
+            createSimpleTable(
+                ["Parameter", "Unit", "Inlet Water Characteristics (DAF Feed)", "Anaerobic Feed Water Characteristics"],
+                params.map(p => {
+                    const anaP = anaerobicFeedParams.find(ap => ap.id === p.id);
+                    return [
+                        safeString(p.name),
+                        safeString(p.unit),
+                        safeString(p.value),
+                        safeString(anaP ? anaP.value : '')
+                    ];
+                }),
+                [25, 15, 30, 30]
+            ),
+            createParagraph("Notes:", { spacingBefore: 240, textOptions: { bold: true } }),
+            ...staticDesignBasis.notes.map((note, i) => createParagraph(`${i + 1}. ${note}`, { spacingBefore: 60 })),
+            new Paragraph({ text: "", spacing: { before: 240 } }),
+
+            createHeading("2.2 Technology Overview", 2),
+            createHeading("Pre-Treatment (Screens & DAF)", 3),
+            createParagraph("Raw effluent passes through fine screens to remove coarse solids, followed by Dissolved Air Flotation (DAF) to float and remove suspended solids, oils, and grease."),
+
+            createHeading("Anaerobic Treatment (ELAR)", 3),
+            createParagraph("The conditioned effluent enters the High-Rate Anaerobic Reactor (ELAR). Granular sludge degrades organic matter (COD/BOD) in the absence of oxygen, producing biogas and treated water."),
+
+            createHeading("Aerobic Treatment (Extended Aeration)", 3),
+            createParagraph("Post-anaerobic effluent flows to the Aeration Tank. Surface aerators/diffusers provide oxygen for bacteria to degrade residual organics. The mixed liquor is then separated in a Secondary Clarifier."),
+
+            createHeading("Tertiary Treatment", 3),
+            createParagraph("Clarified water is filtered through a Multigrade Filter (MGF) and Activated Carbon Filter (ACF) to remove traces of solids, color, and odor."),
+
+            createHeading("2.3 Process Description", 2),
+            createParagraph("DAF: Removes suspended solids and protects downstream biology."),
+            createParagraph("Pre-Acidification: Conditions wastewater pH and VFA levels (<40% acidification) to prevent scaling."),
+            createParagraph("ELAR: Main biological degradation stage with 3-phase separation."),
+            createParagraph("Biogas: Collected in a gas holder; excess is flared."),
+            createParagraph("Aeration: Polishing stage for final BOD reduction."),
+            createParagraph("Clarification: Solids separation with Sludge Recirculation (RAS)."),
+            createParagraph("Sludge Handling: Dewatering via Screw Press."),
+
+            new PageBreak(),
+
+            createHeading("2.4 Performance Guarantees", 2),
+
+            createHeading("Anaerobic Section", 3),
+            createSimpleTable(
+                ["Parameter", "Guaranteed Value"],
+                staticGuarantees.anaerobic.map(p => [safeString(p.param), safeString(p.unit)]),
+                [50, 50]
+            ),
+
+            createHeading("Aerobic Section (Secondary Clarifier Outlet)", 3),
+            createSimpleTable(
+                ["Parameter", "Guaranteed Value"],
+                staticGuarantees.aerobic.map(p => [safeString(p.param), safeString(p.unit)]),
+                [50, 50]
+            ),
+            new PageBreak()
+        );
+
+        // ==========================================
+        // SECTION 3: PROCESS IMPACT ANALYSIS
+        // ==========================================
+
+        sections.push(
+            createHeading("3. Process Impact Analysis"),
+
+            createHeading(theoryContent.bromide.title, 2),
             createParagraph(theoryContent.bromide.text),
             createSimpleTable(
-                ["Compound", "Effect on Anaerobes", "Notes"],
+                ["Compound", "Effect", "Notes"],
                 theoryContent.bromide.table.map(row => [row.compound, row.effect, row.notes]),
                 [30, 30, 40]
             ),
-            new PageBreak()
-        );
 
-        // b) Impact of Heavy Metals
-        sections.push(
-            createHeading(theoryContent.heavyMetals.title),
+            createHeading(theoryContent.heavyMetals.title, 2),
             createSimpleTable(
-                ["Metal", "Role (at trace level)", "Typical Range (mg/L)", "Toxic Range (mg/L)", "Comments"],
-                theoryContent.heavyMetals.table.map(row => [row.metal, row.role, row.range, row.toxic, row.comments]),
-                [15, 25, 15, 15, 30]
+                ["Metal", "Role", "Toxic Limit", "Comments"],
+                theoryContent.heavyMetals.table.map(row => [row.metal, row.role, row.role, row.comments]), // Mapping 'role' to 'toxic limit' temporarily as simplified in prompt
+                [20, 30, 20, 30]
             ),
-            new PageBreak()
-        );
 
-        // c) Impact of Higher VFA
-        sections.push(
-            createHeading(theoryContent.vfa.title),
+            createHeading(theoryContent.vfa.title, 2),
             createParagraph(theoryContent.vfa.text),
             new PageBreak()
         );
 
         // ==========================================
-        // SECTION 1: DESIGN DETAILS (Static Base)
+        // SECTION 4: PROCESS EQUIPMENT SPECIFICATIONS (MERGED)
         // ==========================================
 
-        sections.push(
-            createHeading("1. Design Details"),
-            createHeading("1.1 Design Basis", 2),
-            createParagraph(staticDesignBasis.intro),
-            createSimpleTable(
-                ["S. No", "Parameter", "Unit", "DAF Feed", "At Anaerobic Inlet"],
-                staticDesignBasis.parameters.map(p => [
-                    safeString(p.sn),
-                    safeString(p.param),
-                    safeString(p.unit),
-                    safeString(p.raw),
-                    safeString(p.anaInlet)
-                ]),
-                [10, 30, 15, 20, 25]
-            ),
-            createParagraph("Note:", { spacingBefore: 240, textOptions: { bold: true } }),
-            ...staticDesignBasis.notes.map((note, i) =>
-                createParagraph(`${i + 1}. ${note}`, { spacingBefore: 60 })
-            ),
-            createParagraph(""),
+        sections.push(createHeading("4. Process Equipment Specifications"));
 
-            createHeading("1.2 Guarantee Parameters", 2),
-            createHeading("Anaerobic Outlet", 3),
-            createSimpleTable(
-                ["S. No", "Parameter", "Unit / Value"],
-                staticGuarantees.anaerobic.map(p => [safeString(p.sn), safeString(p.param), safeString(p.unit)]),
-                [10, 40, 50]
-            ),
-            createHeading("Secondary Outlet", 3),
-            createSimpleTable(
-                ["S. No", "Parameter", "Unit / Value"],
-                staticGuarantees.secondary.map(p => [safeString(p.sn), safeString(p.param), safeString(p.unit)]),
-                [10, 40, 50]
-            ),
-            createParagraph("Notes:", { spacingBefore: 240, textOptions: { bold: true } }),
-            ...staticGuarantees.notes.map((note, i) =>
-                createParagraph(`${i + 1}. ${note}`, { spacingBefore: 60 })
-            ),
-            new PageBreak()
-        );
+        // Helper to Create Equipment Section with Scope
+        const createEquipSection = (number, title, scope, details, tableHeaders, tableData) => {
+            const scopeLabel = scope ? ` [Scope: ${scope}]` : "";
+            sections.push(createHeading(`${number} ${title}${scopeLabel}`, 2));
 
-        // ==========================================
-        // SECTION 2: TECHNOLOGY OVERVIEW
-        // ==========================================
+            if (details) {
+                // details can be a string or array of strings
+                if (Array.isArray(details)) {
+                    details.forEach(d => sections.push(createParagraph(d)));
+                } else {
+                    sections.push(createParagraph(details));
+                }
+            }
 
-        sections.push(
-            createHeading("2. Technology Overview"),
-
-            // 2.1 Technology Overview (Detailed)
-            createHeading("2.1 Technology Description", 2),
-
-            createHeading("ELAR (Elevated Anaerobic Reactor)", 3),
-            createParagraph("Working Principle: The ELAR is a high-rate anaerobic system designed for industrial wastewater. It utilizes a granular sludge blanket to degrade organic matter, producing biogas as a valuable byproduct."),
-            createParagraph("Key Features & Advantages:", { textOptions: { bold: true } }),
-            createParagraph("• Compact design with small footprint"),
-            createParagraph("• High organic loading capacity"),
-            createParagraph("• Flexible biomass retention"),
-            createParagraph("• Efficient energy recovery (biogas)"),
-            createParagraph("Applications: Suitable for high COD wastewaters including paper mills, starch, distilleries, and food processing industries."),
-
-            createHeading("Aerobic Tank", 3),
-            createParagraph("The aerobic tank serves as a post-anaerobic treatment stage to polish the effluent. It utilizes activated sludge process where microorganisms degrade remaining organics in the presence of oxygen."),
-            createParagraph("Key Parameters & Mechanism:", { textOptions: { bold: true } }),
-            createParagraph("• Calcium precipitation mechanism integration for scaling control"),
-            createParagraph("• MLSS Range: 5,000 - 10,000 mg/L for high stability"),
-            createParagraph("• MLVSS: 40 - 50% indicating active biomass"),
-            createParagraph("• High efficiency oxygen transfer system for energy savings"),
-            createParagraph("• Robust biological reduction of residual COD and BOD"),
-
-            createHeading("Secondary Clarifier", 3),
-            createParagraph("Designed for effective solid-liquid separation after the aerobic stage. It ensures high-quality effluent and proper sludge recirculation."),
-            createParagraph("Specifications & Operation:", { textOptions: { bold: true } }),
-            createParagraph("• Optimized Hydraulic Loading Rate (HLR) for clear separation"),
-            createParagraph("• Controlled Solids Loading Rate (SLR) to handle biomass flux"),
-            createParagraph("• Efficient Return Activated Sludge (RAS) system to maintain MLSS"),
-            createParagraph("• Waste Activated Sludge (WAS) management for excess biomass removal"),
-            createParagraph("• Ensures final effluent meets discharge or recycle quality norms"),
-
-            // 2.2 Process Description
-            createHeading("2.2 Process Description", 2),
-            createParagraph("The process integrates physical, chemical, and biological stages for COD removal and energy recovery."),
-
-            createParagraph("DAF (Dissolved Air Flotation):", { textOptions: { bold: true } }),
-            createParagraph("The Dissolved Air Flotation (DAF) unit removes suspended solids and fats/oils/grease (FOG) from the raw effluent using micro-bubbles. This pre-treatment step protects downstream biological systems from inert solids accumulation and shock loads."),
-
-            createParagraph("Pre-Acidification Tank:", { textOptions: { bold: true } }),
-            createParagraph("This tank conditions the wastewater, adjusting pH and ensuring partial acidification (VFA generation) before entering the anaerobic reactor. Degree of acidification is controlled <40% to prevent scaling issues. Includes necessary agitation to maintain homogeneity."),
-
-            createParagraph("ELAR (Anaerobic):", { textOptions: { bold: true } }),
-            createParagraph("The main biological treatment stage where organic pollutants are converted into biogas by anaerobic bacteria in a controlled, oxygen-free environment. Features internal three-phase separation (Gas-Liquid-Solid) to retain granular biomass while releasing biogas and treated effluent. Includes sampling points and instrumentation for process monitoring."),
-
-            createParagraph("Biogas Holder & Flare:", { textOptions: { bold: true } }),
-            createParagraph("Biogas generated is collected in a constant pressure gas holder. Excess gas is safely burned via an automated flare stack system to prevent atmospheric discharge. System includes safety devices like flame arrestors, pressure relief valves, and condensate traps."),
-
-            createParagraph("Biomass Holding Tank:", { textOptions: { bold: true } }),
-            createParagraph("Stores excess granular sludge or biomass for future use or system restart, preserving valuable biological inventory. Essential for quick recovery after shutdowns or upsets."),
-
-            createParagraph("Aeration Tank:", { textOptions: { bold: true } }),
-            createParagraph("An oxygen-rich environment where aerobic bacteria further degrade COD/BOD to meet final discharge norms. Equipped with fine bubble or surface aeration systems to provide dissolved oxygen and mixing."),
-
-            createParagraph("Secondary Clarifier:", { textOptions: { bold: true } }),
-            createParagraph("Separates biological sludge from treated water by gravity settling. Settled sludge is recycled to the aeration tank (RAS) to maintain MLSS, while clear overflow water is discharged for tertiary treatment or disposal."),
-
-            createParagraph("Sludge Handling:", { textOptions: { bold: true } }),
-            createParagraph("Generates excess biological and chemical sludge is dewatered using a screw press or centrifuge to reduce volume before disposal. Includes polymer dosing system for sludge conditioning."),
-
-            new PageBreak()
-        );
-
-        // ==========================================
-        // SECTION 3: EDI SCOPE OF SUPPLY
-        // ==========================================
-
-        // --- 3.1 Equipment List Logic (Comprehensive & Scope Split) ---
-        const allEquip = [];
-        const pushEquip = (obj, name, defaultSpecs, defaultMoc) => {
-            if (obj && obj.required) {
-                allEquip.push({
-                    name: name,
-                    specs: defaultSpecs || `${obj.capacity || ''} ${obj.type || ''}`.trim() || '-',
-                    qty: safeString(obj.qty || '1'),
-                    moc: safeString(obj.moc || obj.material || defaultMoc || 'Std'),
-                    scope: obj.scope || 'EDI'
-                });
+            if (tableData && tableData.length > 0) {
+                sections.push(createSimpleTable(tableHeaders, tableData, tableHeaders.map(() => 100 / tableHeaders.length)));
             }
         };
 
-        // --- Add All Equipment (Synced with PDF Logic) ---
-        pushEquip(screens, "Screens", `${screens.capacity} ${screens.type}`, screens.moc);
-        pushEquip(preAcid, "Pre-Acidification Tank", `${preAcid.capacity} m³`, preAcid.moc);
-        if (daf.required) {
-            pushEquip(daf, "DAF Unit", `${daf.flow} m³/hr`, "Epoxy Coated MS");
-            // DAF Components
-            if (daf.hpPumpCapacity) allEquip.push({ name: "DAF HP Pump", specs: `${daf.hpPumpCapacity} m³/hr`, qty: daf.hpPumpQty, moc: daf.hpPumpMOC, scope: daf.scope });
-            if (daf.airCompCapacity) allEquip.push({ name: "DAF Air Compressor", specs: `${daf.airCompCapacity} CFM`, qty: daf.airCompQty, moc: daf.airCompMOC, scope: daf.scope });
-        }
-
-        pushEquip(anaerobicFeedPump, "Anaerobic Feed Pump", `${anaerobicFeedPump.capacity} m³/hr`, anaerobicFeedPump.material);
-        pushEquip(anaerobicTank, "Anaerobic Reactor", `${anaerobicTank.capacity} m³`, anaerobicTank.moc);
-        pushEquip(standPipe, "Stand Pipe", standPipe.capacity, standPipe.moc);
-        pushEquip(biomassPump, "Biomass Pump", `${biomassPump.capacity} m³/hr`, biomassPump.moc);
-
-        pushEquip(biogasHolder, "Biogas Holder (Mech)", `${biogasHolder.capacity} m³`, "MSEP/Membrane");
-        pushEquip(biogasCivil, "Biogas Holder (Civil)", `${biogasCivil.capacity} m³`, "RCC");
-        pushEquip(biogasFlare, "Biogas Flare", `${biogasFlare.capacity} Nm³/hr`, biogasFlare.moc);
-        pushEquip(biomassHoldingTank, "Biomass Holding Tank", `${biomassHoldingTank.capacity} m³`, biomassHoldingTank.moc);
-
-        pushEquip(aerationTank, "Aeration Tank", `${aerationTank.capacity} m³`, aerationTank.moc);
-        pushEquip(aerators, "Surface Aerators", `${aerators.power} HP`, aerators.moc);
-        pushEquip(airBlower, "Air Blower", `${airBlower.capacity} m³/hr`, "CI");
-        pushEquip(diffusers, "Diffusers", diffusers.type, diffusers.moc);
-
-        pushEquip(secondaryClarifierTank, "Secondary Clarifier Tank", `${secondaryClarifierTank.proposedDia} m Dia`, secondaryClarifierTank.moc);
-        pushEquip(secondaryClarifierMech, "Secondary Clarifier Mech", `${secondaryClarifierMech.capacity} m Dia`, secondaryClarifierMech.moc);
-        pushEquip(sludgeRecircPump, "Sludge Recirculation Pump", `${sludgeRecircPump.capacity} m³/hr`, sludgeRecircPump.moc);
-
-        pushEquip(treatedWaterTank, "Treated Water Tank", `${treatedWaterTank.capacity} m³`, treatedWaterTank.moc);
-        pushEquip(treatedWaterPump, "Treated Water Pump", `${treatedWaterPump.capacity} m³/hr`, treatedWaterPump.moc);
-
-        // Primary Treatment (Paper)
-        pushEquip(primaryClarifier, "Primary Clarifier", `${primaryClarifier.capacity} m³`, primaryClarifier.moc);
-        pushEquip(primaryClarifierMech, "Primary Clarifier Mech", primaryClarifierMech.capacity, primaryClarifierMech.moc);
-        pushEquip(primarySludgePump, "Primary Sludge Pump", `${primarySludgePump.capacity} m³/hr`, primarySludgePump.moc);
-        pushEquip(coolingSystem, "Cooling System", `${coolingSystem.capacity} m³/hr`, coolingSystem.moc);
-
-        // Filters
-        pushEquip(mgfSpecs, "Multigrade Filter", `${mgfSpecs.flow} m³/hr`, mgfSpecs.moc);
-        pushEquip(acfSpecs, "Activated Carbon Filter", `${acfSpecs.flow} m³/hr`, acfSpecs.moc);
-
-        // Dosing Systems
-        if (dosingSystems) {
-            Object.entries(dosingSystems).forEach(([k, v]) => {
-                if (v.required) {
-                    if (v.pump) allEquip.push({ name: `${k} Dosing Pump`, specs: `${v.pump.capacity} LPH`, qty: v.pump.qty || '1', moc: v.pump.moc, scope: v.pump.scope || 'EDI' });
-                    if (v.tank) allEquip.push({ name: `${k} Dosing Tank`, specs: `${v.tank.capacity} Lit`, qty: v.tank.qty || '1', moc: v.tank.moc, scope: v.tank.scope || 'EDI' });
-                    if (v.agitator) allEquip.push({ name: `${k} Dosing Agitator`, specs: v.agitator.capacity || '-', qty: v.agitator.qty || '1', moc: v.agitator.moc, scope: v.agitator.scope || 'EDI' });
-                }
-            });
-        }
-
-        // Sludge Handling
-        pushEquip(sludgeSystem, "Sludge Dewatering System", `${sludgeSystem.totalCapacity} kg/hr`, "Std");
-
-
-        if (equipment && equipment.length > 0) {
-            equipment.forEach(e => pushEquip(e, e.name, e.specs, "-"));
-        }
-
-        // --- Filter by Scope ---
-        const ediItems = allEquip.filter(e => e.scope === 'EDI');
-        const clientItems = allEquip.filter(e => e.scope === 'Client');
-
-        // Render EDI Scope Table
-        sections.push(
-            createHeading("3. EDI Scope of Supply"),
-            createHeading("3.1 Equipment List", 2),
-            createSimpleTable(
-                ["Equipment Name", "Specifications", "Qty", "MOC"],
-                ediItems.length > 0 ? ediItems.map(e => [e.name, e.specs, e.qty, e.moc]) : [["-", "-", "-", "-"]],
-                [30, 40, 10, 20]
-            ),
-            createParagraph(""),
-
-            createHeading("3.2 Piping Specifications", 2),
-            createSimpleTable(
-                ["Service Line", "Material (MOC)", "Type / Class"],
-                [
-                    ["Raw Effluent", "UPVC / HDPE", "Sch 80 / PE100"],
-                    ["Anaerobic Feed", "SS 304 / HDPE", "Sch 10 / PE100"],
-                    ["Biogas Line", "SS 304 / HDPE", "Sch 10 / PN6"],
-                    ["Air Line (Blower to Tank)", "MS 'B' Class / SS 304", "Heavy Duty"],
-                    ["Air Grid (Inside Tank)", "UPVC / ABS", "High Pressure"],
-                    ["Sludge Line", "UPVC / HDPE", "Sch 80"],
-                    ["Chemical Dosing", "UPVC / Braided Hose", "Chemical Resistant"],
-                    ["Treated Water", "UPVC", "Sch 40"]
-                ],
-                [40, 30, 30]
-            ),
-            new PageBreak()
+        // 4.1 DAF [Client Scope]
+        createEquipSection("4.1", "Dissolved Air Flotation (DAF)", "Client / Existing", null,
+            ["Parameter", "Specification"],
+            [
+                ["DAF Unit", `250 m³/hr, Epoxy Coated MS (Qty: 1)`],
+                ["HP Pump", `64 m³/hr @ 10m, CI/SS304 (Qty: 2, 1W+1S)`],
+                ["Air Compressor", `12 CFM @ 6 kg/cm², SS304 (Qty: 2, 1W+1S)`]
+            ]
         );
 
-        // ==========================================
-        // SECTION 4: CLIENT SCOPE OF SUPPLY
-        // ==========================================
+        // 4.2 Chemical Dosing Systems [EDI Supply] - Combined
+        sections.push(createHeading("4.2 Chemical Dosing Systems [Scope: EDI Supply]", 2));
 
-        sections.push(
-            createHeading("4. Client Scope of Supply"),
-            createHeading("4.1 Civil & Equipment Scope", 2),
-            createSimpleTable(
-                ["Equipment Name", "Specifications", "Qty", "MOC"],
-                clientItems.length > 0 ? clientItems.map(e => [e.name, e.specs, e.qty, e.moc]) : [["-", "-", "-", "-"]],
-                [30, 40, 10, 20]
-            ),
-            createParagraph("The client shall provide the following:")
+        const renderDosingTable = (systemName, items) => {
+            sections.push(createHeading(systemName, 3));
+            const rows = items.map(item => [item.item, item.spec, item.qty]);
+            sections.push(createSimpleTable(["Item", "Specification", "Qty"], rows, [30, 50, 20]));
+        };
+
+        renderDosingTable("Urea Dosing System", [
+            { item: "Dosing Pump", spec: "110 LPH, PP", qty: "2 (1W+1S)" },
+            { item: "Dosing Tank", spec: "500 / 2500 Lit, PP/HDPE", qty: "1" },
+            { item: "Agitator", spec: "Turbine, SS316", qty: "1" }
+        ]);
+
+        renderDosingTable("Phosphoric Acid (H3PO4) Dosing System", [
+            { item: "Dosing Pump", spec: "25 LPH, PP", qty: "2 (1W+1S)" },
+            { item: "Dosing Tank", spec: "500 Lit, PP/HDPE", qty: "1" }
+        ]);
+
+        renderDosingTable("Caustic Dosing System", [
+            { item: "Dosing Pump", spec: "100 LPH, SS316", qty: "2 (1W+1S)" },
+            { item: "Dosing Tank", spec: "500 / 1000 Lit, MS", qty: "1" },
+            { item: "Agitator", spec: "Turbine, SS316", qty: "1" }
+        ]);
+
+        renderDosingTable("Micronutrients & HCl Dosing", [
+            { item: "Dosing Pump", spec: "10 LPH, PP", qty: "2 (1W+1S)" },
+            { item: "Dosing Tank", spec: "500 Lit", qty: "1" }
+        ]);
+
+
+        // 4.3 Screening System [EDI]
+        createEquipSection("4.3", "Screening System", "EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Type", `Fine Screen`],
+                ["MOC", `SS304`],
+                ["Quantity", `1 No.`]
+            ]
         );
 
-        if (clientScopeData && clientScopeData.length > 0) {
-            clientScopeData.forEach(scopeItem => {
-                sections.push(
-                    createHeading(scopeItem.title, 2)
-                );
+        // 4.4 Pre-Acidification Tank [Client]
+        createEquipSection("4.4", "Pre-Acidification Tank", "Client / Existing", null,
+            ["Parameter", "Specification"],
+            [
+                ["Tank Capacity", `300 m³, RCC (Existing Equalization Tank)`],
+                ["Agitator", `Slow speed top mounted, SS316 (Make: Ceecons/Verito)`]
+            ]
+        );
 
-                if (scopeItem.isList) {
-                    scopeItem.data.forEach(line => {
-                        sections.push(createParagraph(`• ${line}`, { indent: { left: 360 } }));
-                    });
-                } else {
-                    sections.push(
-                        createSimpleTable(
-                            scopeItem.headers,
-                            scopeItem.data,
-                            scopeItem.headers.map(() => 100 / scopeItem.headers.length)
-                        )
-                    );
-                }
-                sections.push(new Paragraph({ text: "", spacing: { before: 200 } }));
-            });
-        }
+        // 4.5 Anaerobic Feed Pump [EDI]
+        createEquipSection("4.5", "Anaerobic Feed Pump", "EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Capacity", `225 m³/hr @ 3 kg/cm²`],
+                ["Type", `Centrifugal Semi-open, SS304`],
+                ["Make", "KSB / Johnson / EQT"],
+                ["Quantity", `2 Nos (1W+1S)`]
+            ]
+        );
+
+        // 4.6 Anaerobic Reactor System [Client/EDI]
+        createEquipSection("4.6", "Anaerobic Reactor System", "Client (Civil) / EDI (Internals)", null,
+            ["Parameter", "Specification"],
+            [
+                ["Tank Dimensions", "Dia 9m x 24m Ht"],
+                ["Capacity", "1527 m³"],
+                ["MOC", "MSEP (Site Fabrication)"],
+                ["Quantity", "1 No."]
+            ]
+        );
+
+        // 4.7 Biomass Transfer Pump [EDI]
+        createEquipSection("4.7", "Biomass Transfer Pump", "EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Capacity", "10 m³/hr @ 3 kg/cm²"],
+                ["Type", "Positive Displacement, Nitrile Stator"],
+                ["Quantity", "2 Nos (1W+1S)"]
+            ]
+        );
+
+        // 4.8 Biogas Handling System [Combined]
+        sections.push(createHeading("4.8 Biogas Handling System", 2));
+        createHeading("Biogas Holder [Scope: Client (Civil) / EDI (Mech)]", 3);
+        sections.push(createSimpleTable(
+            ["Parameter", "Specification"],
+            [
+                ["Dome Dimensions", "Dia 4.5m x 3.5m Ht (Capacity: 56 m³)"],
+                ["Outer Tank (Civil)", "Dia 5.5m x 4.5m Ht, RCC"],
+                ["MOC (Dome)", "MSEP"]
+            ],
+            [50, 50]
+        ));
+        createHeading("Biogas Flare Stack [Scope: EDI]", 3);
+        sections.push(createSimpleTable(
+            ["Parameter", "Specification"],
+            [
+                ["Capacity", "700 Nm³/hr"],
+                ["Height", "10 m"],
+                ["Type", "Open Flare"]
+            ],
+            [50, 50]
+        ));
+
+        // 4.9 Biomass Holding Tank [Client]
+        createEquipSection("4.9", "Biomass Holding Tank", "Client", null,
+            ["Parameter", "Specification"],
+            [
+                ["Dimensions", "10m x 5m x 4m"],
+                ["Capacity", "200 m³, RCC"]
+            ]
+        );
+
+        // 4.10 Aeration Tank System [Client]
+        createEquipSection("4.10", "Aeration Tank System", "Client", null,
+            ["Parameter", "Specification"],
+            [
+                ["Existing Tank", "1000 m³, RCC"],
+                ["Proposed Tank", "4298 m³ (27m x 20m x 4m)"],
+                ["Quantity", "2 Nos (Proposed)"]
+            ]
+        );
+
+        // 4.11 Aeration System Components [EDI]
+        createEquipSection("4.11", "Aeration System Components", "EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Aerators", "Gear Mounted, SS316"],
+                ["Power", "~30 kW x 10 Nos"],
+                ["Air Blowers", "Tri-lobe, CI, 2 Nos"]
+            ]
+        );
+
+        // 4.12 Secondary Clarifier System [Combined]
+        sections.push(createHeading("4.12 Secondary Clarifier System", 2));
+        createHeading("Clarifier Tanks [Scope: Client]", 3);
+        sections.push(createSimpleTable(
+            ["Parameter", "Specification"],
+            [
+                ["Existing Tank", "Dia 12m x 3.5m Ht (390 m³)"],
+                ["Proposed Tank", "Dia 17.6m x 3.0m Ht (732 m³)"]
+            ],
+            [50, 50]
+        ));
+        createHeading("Clarifier Mechanisms [Scope: EDI]", 3);
+        sections.push(createSimpleTable(
+            ["Parameter", "Specification"],
+            [
+                ["Type", "Central Driven, MSEP"],
+                ["Quantity", "2 Nos"],
+                ["Features", "Scum Collection System included"]
+            ],
+            [50, 50]
+        ));
+
+
+        // 4.13 Sludge Recirculation Pump [EDI]
+        createEquipSection("4.13", "Sludge Recirculation (RAS) Pump", "EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Capacity", "200 m³/hr @ 1 kg/cm²"],
+                ["Type", "Centrifugal, SS316"],
+                ["Quantity", "2 Nos (1W+1S)"]
+            ]
+        );
+
+        // 4.14 Sludge Management System [EDI]
+        sections.push(createHeading("4.14 Sludge Management System [Scope: EDI]", 2));
+        createHeading("Sludge Dewatering (Screw Press) [Scope: EDI]", 3);
+        sections.push(createSimpleTable(
+            ["Parameter", "Specification"],
+            [
+                ["Capacity", "500 kg dry solids/hr"],
+                ["MOC", "SS316"],
+                ["Make", "SNP / Chemiescience / EQT"]
+            ],
+            [50, 50]
+        ));
+        createHeading("Poly Dosing System", 3);
+        sections.push(createSimpleTable(
+            ["Parameter", "Specification"],
+            [
+                ["Poly Prep/Dosing Tanks", "10 m³ each, RCC (Client Scope)"],
+                ["Dosing Pump", "3 m³/hr, Screw type, 2 Nos (1W+1S) (EDI Scope)"],
+                ["Feed Pump", "22 m³/hr, Screw type, 2 Nos (1W+1S) (EDI Scope)"]
+            ],
+            [50, 50]
+        ));
+
+        // 4.15 Treated Water Handling [Client/EDI]
+        createEquipSection("4.15", "Treated Water Handling", "Client/EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Treated Water Tank", "300 m³, RCC [Scope: Client]"],
+                ["Transfer Pump", "250 m³/hr, SS316, 2 Nos [Scope: EDI]"]
+            ]
+        );
+
+        // 4.16 Other Major Equipment [EDI]
+        createEquipSection("4.16", "Other Major Equipment", "EDI", null,
+            ["Equipment", "Specification"],
+            [
+                ["Tertiary Filters", "MGF + ACF, MS Epoxy"],
+                ["Instruments", "Flow, Level, pH, Temp transmitters (E&H preferred)"]
+            ]
+        );
+
+        // 4.17 Piping & Valves [EDI/Client]
+        sections.push(createHeading("4.17 Piping & Valves Specifications", 2));
+        sections.push(createSimpleTable(
+            ["Service Line", "Material (MOC)", "Type / Class"],
+            [
+                ["Raw Effluent", "UPVC / HDPE", "Sch 80 / PE100"],
+                ["Anaerobic Feed", "SS 304 / HDPE", "Sch 10 / PE100"],
+                ["Biogas Line", "SS 304 / HDPE", "Sch 10 / PN6"],
+                ["Air Line (Blower to Tank)", "MS 'B' Class / SS 304", "Heavy Duty"],
+                ["Air Grid (Inside Tank)", "UPVC / ABS", "High Pressure"],
+                ["Sludge Line", "UPVC / HDPE", "Sch 80"],
+                ["Chemical Dosing", "UPVC / Braided Hose", "Chemical Resistant"],
+                ["Treated Water", "UPVC", "Sch 40"]
+            ],
+            [40, 30, 30]
+        ));
+
         sections.push(new PageBreak());
 
         // ==========================================
-        // SECTION 5: BATTERY LIMIT (Placeholder)
+        // SECTION 5: EXCLUSIONS
         // ==========================================
 
         sections.push(
-            createHeading("5. Battery Limit"),
-            createParagraph("• Inlet: Raw effluent feed pump discharge at equalization tank."),
-            createParagraph("• Outlet: Discharge of treated water transfer pump."),
-            createParagraph("• Power: At the incoming breaker of the main control panel."),
-            createParagraph("• Water: At the inlet of the chemical preparation tanks."),
-            createParagraph("• Sludge: At the discharge chute of the sludge dewatering machine."),
-            new PageBreak()
-        );
-
-        // ==========================================
-        // SECTION 6: EXCLUSIONS
-        // ==========================================
-
-        sections.push(
-            createHeading("6. Exclusions"),
+            createHeading("5. Exclusions from Scope of Supply"),
             createParagraph("The following items are excluded from our scope of supply and shall be arranged by the client:"),
 
-            ...importantConsiderationsPoints.map(point =>
-                createParagraph(`• ${safeString(point)}`, { spacingBefore: 60, spacingAfter: 60, indent: { left: 720 } })
-            ),
-
-            createParagraph("• Civil works foundation and construction.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Incoming power supply and cabling up to the panel.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Laboratory equipment and chemicals.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Operation and maintenance staff.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Land, Approach Road, and Street Lighting.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Administrative Building, Lab, and Store.", { spacingBefore: 60, indent: { left: 720 } })
+            createParagraph("• Civil Works: All foundations, RCC tanks, buildings, roads, and drains.", { spacingBefore: 60, indent: { left: 720 } }),
+            createParagraph("• Power Supply: Incoming power, cabling to panel, transformers.", { spacingBefore: 60, indent: { left: 720 } }),
+            createParagraph("• Water & Utilities: Service water and compressed air supply.", { spacingBefore: 60, indent: { left: 720 } }),
+            createParagraph("• Manpower: Operating and maintenance staff.", { spacingBefore: 60, indent: { left: 720 } }),
+            createParagraph("• Chemicals: Lab chemicals and bulk chemicals.", { spacingBefore: 60, indent: { left: 720 } }),
+            createParagraph("• Statutory Approvals: Pollution Control Board clearances.", { spacingBefore: 60, indent: { left: 720 } }),
+            createParagraph("• Mill Constraints: Oxidizing biocides prohibited; Fresh water intake restricted to 800 m³/day.", { spacingBefore: 60, indent: { left: 720 } })
         );
 
         // --- Final Document Assembly ---
-
         const doc = new Document({
             sections: [{
                 properties: {},

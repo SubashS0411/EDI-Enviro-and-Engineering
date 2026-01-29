@@ -6,10 +6,11 @@ import { useProposalAuth } from '@/context/ProposalGeneratorPasswordContext';
 import { useToast } from '@/components/ui/use-toast';
 
 const ProposalGeneratorPasswordScreen = () => {
+  const { authenticate, user } = useProposalAuth();
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(user?.email || '');
   const [error, setError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
-  const { authenticate, user } = useProposalAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -19,7 +20,7 @@ const ProposalGeneratorPasswordScreen = () => {
     setIsValidating(true);
 
     try {
-      const result = await authenticate(password);
+      const result = await authenticate(email, password);
 
       // Handle both boolean (legacy) and object responses for safety
       const success = typeof result === 'object' ? result.success : result;
@@ -81,6 +82,26 @@ const ProposalGeneratorPasswordScreen = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
 
             <div className="space-y-2">
+              <label htmlFor="proposal-username" className="text-xs font-semibold text-slate-700 block uppercase tracking-wide">
+                Username / Email
+              </label>
+              <div className="relative">
+                <input
+                  id="proposal-username"
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError('');
+                  }}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm"
+                  placeholder="Enter email..."
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <label htmlFor="proposal-password" className="text-xs font-semibold text-slate-700 block uppercase tracking-wide">
                 Tool Password
               </label>
@@ -95,7 +116,7 @@ const ProposalGeneratorPasswordScreen = () => {
                   }}
                   className={`w-full px-4 py-2 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-200 focus:border-emerald-500'}`}
                   placeholder="Enter password..."
-                  autoFocus
+                  required
                 />
               </div>
               {error && (
@@ -109,7 +130,7 @@ const ProposalGeneratorPasswordScreen = () => {
             <Button
               type="submit"
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-10 text-sm font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-70"
-              disabled={!password || isValidating}
+              disabled={!password || !email || isValidating}
             >
               {isValidating ? (
                 <>
