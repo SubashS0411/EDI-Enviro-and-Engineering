@@ -16,7 +16,9 @@ import {
     ImageRun,
     VerticalAlign,
     PageNumber,
-    SimpleField
+    SimpleField,
+    TableOfContents,
+    HeadingLevel
 } from "docx";
 import { saveAs } from "file-saver";
 import { clientScopeData } from './clientScopeData';
@@ -75,7 +77,7 @@ const createHeading = (text, level = 1) => {
         children: [createText(text, { bold: true, size, color: "2E74B5" })], // Blue color (2E74B5 is a standard professional blue)
         spacing: { before: 240, after: 120 },
         alignment: AlignmentType.LEFT,
-        heading: level === 1 ? "Heading1" : (level === 2 ? "Heading2" : "Heading3")
+        heading: level === 1 ? HeadingLevel.HEADING_1 : (level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3)
     });
 };
 
@@ -176,7 +178,11 @@ export const generateProposalWord = async (data) => {
             sludgeCalculationDetails,
             instruments = [],
             pipingSpecs = {},
-            valveSpecs = {}
+            valveSpecs = {},
+            // Checklist Selections
+            techOverview = [],
+            processDesc = [],
+            selectedSections = []
         } = data || {};
 
         const sections = [];
@@ -269,42 +275,50 @@ export const generateProposalWord = async (data) => {
             }),
 
             // ==========================================
-            // PAGE 2: TABLE OF CONTENTS
+            // PAGE 2: TABLE OF CONTENTS (Static)
             // ==========================================
 
             createHeading("Table of Contents"),
-            createParagraph("1. Client Details & Design Basis", { textOptions: { bold: true } }),
-            createParagraph("2. Influent Parameters", { textOptions: { bold: true } }),
-            createParagraph("   2.2 Technology Overview"),
-            createParagraph("   2.3 Process Description"),
-            createParagraph("   2.4 Performance Guarantees"),
-            createParagraph("3. Process Impact Analysis", { textOptions: { bold: true } }),
-            createParagraph("   3.1 Impact of Bromide"),
-            createParagraph("   3.2 Impact of Heavy Metals"),
-            createParagraph("   3.3 Impact of Higher VFA"),
-            createParagraph("4. Process Equipment Specifications", { textOptions: { bold: true } }),
-            createParagraph("   4.1 Dissolved Air Flotation (DAF) [Scope: EDI]"),
-            createParagraph("   4.2 Chemical Dosing Systems"),
-            createParagraph("   4.3 Screening System [Scope: EDI]"),
-            createParagraph("   4.4 Primary Clarification System [Scope: Client]"),
-            createParagraph("   4.5 Cooling System (PHE) [Scope: EDI]"),
-            createParagraph("   4.6 Pre-acidification Tank [Scope: Client]"),
-            createParagraph("   4.7 Anaerobic Feed Pump [Scope: EDI]"),
-            createParagraph("   4.8 Anaerobic Reactor System"),
-            createParagraph("   4.9 Biomass Transfer Pump [Scope: EDI]"),
-            createParagraph("   4.10 Biogas Handling System"),
-            createParagraph("   4.11 Biomass Holding Tank [Scope: EDI]"),
-            createParagraph("   4.12 Start-up Granular Biomass"),
-            createParagraph("   4.13 Aeration Tank System [Scope: Client]"),
-            createParagraph("   4.14 Aeration System Components"),
-            createParagraph("   4.15 Secondary Clarifier System"),
-            createParagraph("   4.16 Sludge Recirculation Pump [Scope: EDI]"),
-            createParagraph("   4.17 Sludge Management System [Scope: EDI]"),
-            createParagraph("   4.18 Treated Water Handling"),
-            createParagraph("   4.19 Other Major Equipment"),
-            createParagraph("   4.21 Pipings"),
-            createParagraph("   4.22 Valves"),
-            createParagraph("5. Exclusions from Scope of Supply & Services", { textOptions: { bold: true } }),
+
+            // Static TOC - All section titles listed explicitly
+            createSimpleTable(
+                ["Section", "Title"],
+                [
+                    ["1", "Client Details & Design Basis"],
+                    ["2", "Influent Parameters"],
+                    ["  2.2", "Technology Overview"],
+                    ["  2.3", "Process Description"],
+                    ["  2.4", "Performance Guarantees"],
+                    ["3", "Process Impact Analysis"],
+                    ["  3.1", "Impact of Bromide"],
+                    ["  3.2", "Impact of Heavy Metals"],
+                    ["  3.3", "Impact of Higher VFA"],
+                    ["4", "Process Equipment Specifications"],
+                    ["  4.1", "Dissolved Air Flotation (DAF) [Scope: EDI]"],
+                    ["  4.2", "Chemical Dosing Systems"],
+                    ["  4.3", "Screening System [Scope: EDI]"],
+                    ["  4.4", "Primary Clarification System [Scope: Client]"],
+                    ["  4.5", "Cooling System (PHE) [Scope: EDI]"],
+                    ["  4.6", "Pre-acidification Tank [Scope: Client]"],
+                    ["  4.7", "Anaerobic Feed Pump [Scope: EDI]"],
+                    ["  4.8", "Anaerobic Reactor System"],
+                    ["  4.9", "Biomass Transfer Pump [Scope: EDI]"],
+                    ["  4.10", "Biogas Handling System"],
+                    ["  4.11", "Biomass Holding Tank [Scope: EDI]"],
+                    ["  4.12", "Start-up Granular Biomass"],
+                    ["  4.13", "Aeration Tank System [Scope: Client]"],
+                    ["  4.14", "Aeration System Components"],
+                    ["  4.15", "Secondary Clarifier System"],
+                    ["  4.16", "Sludge Recirculation Pump [Scope: EDI]"],
+                    ["  4.17", "Sludge Management System [Scope: EDI]"],
+                    ["  4.18", "Treated Water Handling"],
+                    ["  4.19", "Other Major Equipment"],
+                    ["  4.21", "Pipings"],
+                    ["  4.22", "Valves"],
+                    ["5", "Exclusions from Scope of Supply & Services"]
+                ],
+                [15, 85]
+            ),
             new PageBreak()
         );
 
@@ -357,34 +371,44 @@ export const generateProposalWord = async (data) => {
 
             // 2.2 Technology Overview
             createHeading(technologyOverview.title, 2),
-            ...technologyOverview.sections.flatMap(sec => [
-                createParagraph(sec.title, { textOptions: { bold: true } }),
-                ...sec.bullets.map(b => createParagraph(`• ${b.title}: ${b.text}`, { indent: { left: 360 } }))
-            ]),
+            ...technologyOverview.sections
+                .filter(sec => techOverview.includes(sec.title)) // Filter by selection
+                .flatMap(sec => [
+                    createParagraph(sec.title, { textOptions: { bold: true } }),
+                    ...sec.bullets.map(b => createParagraph(`• ${b.title}: ${b.text}`, { indent: { left: 360 } }))
+                ]),
             new Paragraph({ text: "", spacing: { before: 240 } }),
 
             // 2.3 Process Description
             createHeading(processDescription.title, 2),
-            ...processDescription.items.map(item =>
-                createParagraph(`• ${item.title}: ${item.text}`, { indent: { left: 360 } })
-            ),
+            ...processDescription.items
+                .filter(item => processDesc.includes(item.title)) // Filter by selection
+                .map(item =>
+                    createParagraph(`• ${item.title}: ${item.text}`, { indent: { left: 360 } })
+                ),
             new Paragraph({ text: "", spacing: { before: 240 } }),
 
             // 2.4 Performance Guarantees
             createHeading(performanceGuarantees.title, 2),
-            createHeading(performanceGuarantees.anaerobic.title, 3),
-            createSimpleTable(
-                performanceGuarantees.anaerobic.headers,
-                performanceGuarantees.anaerobic.data.map(d => [d.param, d.val]),
-                [50, 50]
-            ),
-            new Paragraph({ text: "", spacing: { before: 240 } }),
-            createHeading(performanceGuarantees.aerobic.title, 3),
-            createSimpleTable(
-                performanceGuarantees.aerobic.headers,
-                performanceGuarantees.aerobic.data.map(d => [d.param, d.val]),
-                [50, 50]
-            ),
+
+            ...(selectedSections.includes('Anaerobic Section') ? [
+                createHeading(performanceGuarantees.anaerobic.title, 3),
+                createSimpleTable(
+                    performanceGuarantees.anaerobic.headers,
+                    performanceGuarantees.anaerobic.data.map(d => [d.param, d.val]),
+                    [50, 50]
+                ),
+                new Paragraph({ text: "", spacing: { before: 240 } })
+            ] : []),
+
+            ...(selectedSections.includes('Aerobic Section') ? [
+                createHeading(performanceGuarantees.aerobic.title, 3),
+                createSimpleTable(
+                    performanceGuarantees.aerobic.headers,
+                    performanceGuarantees.aerobic.data.map(d => [d.param, d.val]),
+                    [50, 50]
+                )
+            ] : []),
             new PageBreak()
         );
 
@@ -583,109 +607,113 @@ export const generateProposalWord = async (data) => {
             ]
         );
 
-        // 4.6 Pre-acidification Tank [Scope: Client]
-        createEquipSection("4.6", "Pre-acidification Tank", "Client", null,
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", `${safeString(preAcid.capacity || "300 m3")}, RCC`],
-                ["Agitator", "Submersible / Top Mounted, SS316 (Make: Sulzer/Ceecons/EQT)"]
-            ]
-        );
+        // 4.6 Pre-acidification Tank [Scope: Client] - (Relevant for Anaerobic)
+        if (selectedSections.includes('Anaerobic Section')) {
+            createEquipSection("4.6", "Pre-acidification Tank", "Client", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Capacity", `${safeString(preAcid.capacity || "300 m3")}, RCC`],
+                    ["Agitator", "Submersible / Top Mounted, SS316 (Make: Sulzer/Ceecons/EQT)"]
+                ]
+            );
 
-        // 4.7 Anaerobic Feed Pump [Scope: EDI]
-        createEquipSection("4.7", "Anaerobic Feed Pump", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", safeString(anaerobicFeedPump.capacity || "225 m3/hr")],
-                ["Type", "Centrifugal Semi-open"],
-                ["MOC", "CI / SS304"],
-                ["Make", "KSB / Kirloskar / Johnson"],
-                ["Quantity", "2 Nos (1W+1S)"]
-            ]
-        );
+            // 4.7 Anaerobic Feed Pump [Scope: EDI]
+            createEquipSection("4.7", "Anaerobic Feed Pump", "EDI", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Capacity", safeString(anaerobicFeedPump.capacity || "225 m3/hr")],
+                    ["Type", "Centrifugal Semi-open"],
+                    ["MOC", "CI / SS304"],
+                    ["Make", "KSB / Kirloskar / Johnson"],
+                    ["Quantity", "2 Nos (1W+1S)"]
+                ]
+            );
 
-        // 4.8 Anaerobic Reactor System
-        createEquipSection("4.8", "Anaerobic Reactor System", null, null,
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", safeString(anaerobicTank.capacity || "1527 m3")],
-                ["Type", "Vertical, MSEP (Site Fabrication)"],
-                ["Stand Pipe", "MSEP"]
-            ]
-        );
+            // 4.8 Anaerobic Reactor System
+            createEquipSection("4.8", "Anaerobic Reactor System", null, null,
+                ["Parameter", "Specification"],
+                [
+                    ["Capacity", safeString(anaerobicTank.capacity || "1527 m3")],
+                    ["Type", "Vertical, MSEP (Site Fabrication)"],
+                    ["Stand Pipe", "MSEP"]
+                ]
+            );
 
-        // 4.9 Biomass Transfer Pump [Scope: EDI]
-        createEquipSection("4.9", "Biomass Transfer Pump", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", safeString(biomassPump.capacity || "10 m3/hr")],
-                ["Type", "Positive Displacement (Screw), Nitrile Stator"],
-                ["Make", "Netzsch / Hydroprokav / EQT"]
-            ]
-        );
+            // 4.9 Biomass Transfer Pump [Scope: EDI]
+            createEquipSection("4.9", "Biomass Transfer Pump", "EDI", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Capacity", safeString(biomassPump.capacity || "10 m3/hr")],
+                    ["Type", "Positive Displacement (Screw), Nitrile Stator"],
+                    ["Make", "Netzsch / Hydroprokav / EQT"]
+                ]
+            );
 
-        // 4.10 Biogas Handling System
-        createEquipSection("4.10", "Biogas Handling System", null, null,
-            ["Parameter", "Specification"],
-            [
-                ["Biogas Holder", "Floating Dome type, MSEP Dome / RCC Tank"],
-                ["Flare Stack", `${safeString(biogasFlare.capacity || "700")} Nm3/hr, 10m Height, Open Flare`],
-                ["Accessories", "Flame Arrestor, Pilot/Main SOV, Moisture Separator"]
-            ]
-        );
+            // 4.10 Biogas Handling System
+            createEquipSection("4.10", "Biogas Handling System", null, null,
+                ["Parameter", "Specification"],
+                [
+                    ["Biogas Holder", "Floating Dome type, MSEP Dome / RCC Tank"],
+                    ["Flare Stack", `${safeString(biogasFlare.capacity || "700")} Nm3/hr, 10m Height, Open Flare`],
+                    ["Accessories", "Flame Arrestor, Pilot/Main SOV, Moisture Separator"]
+                ]
+            );
 
-        // 4.11 Biomass Holding Tank [Scope: EDI]
-        createEquipSection("4.11", "Biomass Holding Tank", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", safeString(biomassHoldingTank.capacity || "200 m3")],
-                ["MOC", "MSEP"],
-                ["Shape", "Rectangular"]
-            ]
-        );
+            // 4.11 Biomass Holding Tank [Scope: EDI]
+            createEquipSection("4.11", "Biomass Holding Tank", "EDI", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Capacity", safeString(biomassHoldingTank.capacity || "200 m3")],
+                    ["MOC", "MSEP"],
+                    ["Shape", "Rectangular"]
+                ]
+            );
 
-        // 4.12 Start-up Granular Biomass
-        sections.push(createHeading("4.12 Start-up Granular Biomass", 2));
-        const vss = Math.round((Number(anaerobicTank.capacity?.split(' ')[0] || 1500) * 0.4)); // Estimation
-        sections.push(createParagraph(`Requirement: ${vss} m3 with 60 kg VSS (VSS/TSS ratio > 60%).`));
+            // 4.12 Start-up Granular Biomass
+            sections.push(createHeading("4.12 Start-up Granular Biomass", 2));
+            const vss = Math.round((Number(anaerobicTank.capacity?.split(' ')[0] || 1500) * 0.4)); // Estimation
+            sections.push(createParagraph(`Requirement: ${vss} m3 with 60 kg VSS (VSS/TSS ratio > 60%).`));
+        }
 
         // 4.13 Aeration Tank System [Scope: Client]
-        createEquipSection("4.13", "Aeration Tank System", "Client", null,
-            ["Parameter", "Specification"],
-            [
-                ["Type", "Extended Aeration"],
-                ["MOC", "RCC"],
-                ["Capacity", safeString(aerationTank.capacity || "4298 m3")]
-            ]
-        );
+        if (selectedSections.includes('Aerobic Section')) {
+            createEquipSection("4.13", "Aeration Tank System", "Client", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Type", "Extended Aeration"],
+                    ["MOC", "RCC"],
+                    ["Capacity", safeString(aerationTank.capacity || "4298 m3")]
+                ]
+            );
 
-        // 4.14 Aeration System Components
-        createEquipSection("4.14", "Aeration System Components", null, null,
-            ["Parameter", "Specification"],
-            [
-                ["Aerators", "Surface Aerators, Make: Indofab"],
-                ["Blowers", "Tri-lobe, Make: KPT"]
-            ]
-        );
+            // 4.14 Aeration System Components
+            createEquipSection("4.14", "Aeration System Components", null, null,
+                ["Parameter", "Specification"],
+                [
+                    ["Aerators", "Surface Aerators, Make: Indofab"],
+                    ["Blowers", "Tri-lobe, Make: KPT"]
+                ]
+            );
 
-        // 4.15 Secondary Clarifier System
-        createEquipSection("4.15", "Secondary Clarifier System", null, null,
-            ["Parameter", "Specification"],
-            [
-                ["Tank", `${safeString(secondaryClarifierTank.dimensions || "Dia 17.6m")}, RCC [Scope: Client]`],
-                ["Mechanism", "Central Driven, MSEP [Scope: EDI]"]
-            ]
-        );
+            // 4.15 Secondary Clarifier System
+            createEquipSection("4.15", "Secondary Clarifier System", null, null,
+                ["Parameter", "Specification"],
+                [
+                    ["Tank", `${safeString(secondaryClarifierTank.dimensions || "Dia 17.6m")}, RCC [Scope: Client]`],
+                    ["Mechanism", "Central Driven, MSEP [Scope: EDI]"]
+                ]
+            );
 
-        // 4.16 Sludge Recirculation Pump [Scope: EDI]
-        createEquipSection("4.16", "Sludge Recirculation Pump", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", safeString(sludgeRecircPump.capacity || "200 m3/hr")],
-                ["Type", "Centrifugal Semi-open, CI"],
-                ["Quantity", "2 Nos (1W+1S)"]
-            ]
-        );
+            // 4.16 Sludge Recirculation Pump [Scope: EDI]
+            createEquipSection("4.16", "Sludge Recirculation Pump", "EDI", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Capacity", safeString(sludgeRecircPump.capacity || "200 m3/hr")],
+                    ["Type", "Centrifugal Semi-open, CI"],
+                    ["Quantity", "2 Nos (1W+1S)"]
+                ]
+            );
+        }
 
         // 4.17 Sludge Management System [Scope: EDI]
         sections.push(createHeading("4.17 Sludge Management System", 2));
@@ -715,9 +743,9 @@ export const generateProposalWord = async (data) => {
             ]
         );
 
-        // 4.19 Tertiary Treatment (Filters)
+        // 4.19 Other Major Equipment (Tertiary Filters)
         if (mgfCalculations || acfCalculations) {
-            sections.push(createHeading("4.19 Tertiary Treatment System", 2));
+            sections.push(createHeading("4.19 Other Major Equipment", 2));
 
             if (mgfCalculations) {
                 sections.push(createHeading("4.19.1 Multigrade Filter (MGF)", 3));
@@ -816,6 +844,9 @@ export const generateProposalWord = async (data) => {
 
         // --- Final Document Assembly ---
         const doc = new Document({
+            features: {
+                updateFields: true,
+            },
             sections: [{
                 properties: {},
                 headers: { default: headerElement },
