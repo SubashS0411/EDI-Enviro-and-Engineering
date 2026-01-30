@@ -369,13 +369,20 @@ export const generateProposalWord = async (data) => {
             ...staticDesignBasis.notes.map((note, i) => createParagraph(`${i + 1}. ${note}`, { spacingBefore: 60 })),
             new Paragraph({ text: "", spacing: { before: 240 } }),
 
-            // 2.2 Technology Overview
+            // 2.1 Technology Overview
             createHeading(technologyOverview.title, 2),
             ...technologyOverview.sections
                 .filter(sec => techOverview.includes(sec.title)) // Filter by selection
                 .flatMap(sec => [
-                    createParagraph(sec.title, { textOptions: { bold: true } }),
-                    ...sec.bullets.map(b => createParagraph(`• ${b.title}: ${b.text}`, { indent: { left: 360 } }))
+                    createParagraph(sec.title, { textOptions: { bold: true, size: 26 } }),
+                    ...(sec.intro ? [createParagraph(sec.intro)] : []),
+                    ...(sec.subsections ? sec.subsections.flatMap(sub => [
+                        createParagraph(sub.heading + ":", { textOptions: { bold: true, size: 24 } }),
+                        ...(sub.text ? [createParagraph(sub.text, { indent: { left: 360 } })] : []),
+                        ...(sub.bullets ? sub.bullets.map(b => createParagraph(`• ${b}`, { indent: { left: 360 } })) : [])
+                    ]) : []),
+                    // Fallback for old bullets format
+                    ...(sec.bullets ? sec.bullets.map(b => createParagraph(`• ${b.title}: ${b.text}`, { indent: { left: 360 } })) : [])
                 ]),
             new Paragraph({ text: "", spacing: { before: 240 } }),
 
@@ -409,6 +416,13 @@ export const generateProposalWord = async (data) => {
                     [50, 50]
                 )
             ] : []),
+
+            // Important Considerations
+            new Paragraph({ text: "", spacing: { before: 240 } }),
+            createParagraph(performanceGuarantees.importantConsiderations.title, { textOptions: { bold: true, size: 26 } }),
+            ...performanceGuarantees.importantConsiderations.bullets.map(b =>
+                createParagraph(`• ${b}`, { indent: { left: 360 } })
+            ),
             new PageBreak()
         );
 
@@ -441,7 +455,12 @@ export const generateProposalWord = async (data) => {
             // 3.3 Higher VFA
             createHeading(theoryContent.vfa.title, 2),
             createParagraph(theoryContent.vfa.text),
-            ...theoryContent.vfa.bullets.map(b => createParagraph(`• ${b}`, { indent: { left: 360 } })),
+            createParagraph(theoryContent.vfa.equation, { alignment: AlignmentType.CENTER, textOptions: { bold: true, size: 24 } }),
+            new Paragraph({ text: "", spacing: { before: 120 } }),
+            createParagraph(theoryContent.vfa.consequencesTitle, { textOptions: { bold: true } }),
+            ...theoryContent.vfa.consequences.map(b => createParagraph(`• ${b}`, { indent: { left: 360 } })),
+            new Paragraph({ text: "", spacing: { before: 120 } }),
+            createParagraph(theoryContent.vfa.controlMeasure, { textOptions: { bold: true } }),
             new PageBreak()
         );
 
@@ -671,29 +690,74 @@ export const generateProposalWord = async (data) => {
 
             // 4.12 Start-up Granular Biomass
             sections.push(createHeading("4.12 Start-up Granular Biomass", 2));
-            const vss = Math.round((Number(anaerobicTank.capacity?.split(' ')[0] || 1500) * 0.4)); // Estimation
-            sections.push(createParagraph(`Requirement: ${vss} m3 with 60 kg VSS (VSS/TSS ratio > 60%).`));
+            sections.push(createParagraph("Start-up granular biomass during commissioning stage."));
+            const vssCapacity = Math.round((Number(anaerobicTank.capacity?.split(' ')[0] || 1500) * 0.5));
+            sections.push(createSimpleTable(
+                null,
+                [
+                    ["Calculated Quantity", `${vssCapacity} m³`],
+                    ["Requirement", "60 kg VSS (VSS/TSS ratio >60%)"]
+                ],
+                [40, 60]
+            ));
         }
 
         // 4.13 Aeration Tank System [Scope: Client]
         if (selectedSections.includes('Aerobic Section')) {
-            createEquipSection("4.13", "Aeration Tank System", "Client", null,
-                ["Parameter", "Specification"],
+            sections.push(createHeading("4.13 Aeration Tank System [Scope: Client]", 2));
+
+            // A) Capacity Design
+            sections.push(createParagraph("A) Capacity Design", { textOptions: { bold: true } }));
+            sections.push(createSimpleTable(
+                null,
                 [
-                    ["Type", "Extended Aeration"],
-                    ["MOC", "RCC"],
-                    ["Capacity", safeString(aerationTank.capacity || "4298 m3")]
-                ]
-            );
+                    ["Anaerobic Inlet BOD", "2500 mg/l", "Anaerobic Removal", "80%"],
+                    ["Anaerobic Outlet BOD", "500.00 mg/l", "BOD Load to Aeration", "1717.75 kg/day"],
+                    ["F/M Ratio", "0.15", "MLSS", "3500 mg/l"],
+                    ["Calculated Capacity", `${safeString(aerationTank.capacity || "3271.90 m³")}`, "-", "-"]
+                ],
+                [25, 25, 25, 25]
+            ));
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+
+            // B) Dimensions & Details
+            sections.push(createParagraph("B) Dimensions & Details", { textOptions: { bold: true } }));
+            sections.push(createSimpleTable(
+                null,
+                [
+                    ["Shape", "Rectangular", "Dimensions", "40.45m (L) x 20.22m (W) x 4m (H)"],
+                    ["HRT", "11.43 hours", "MOC", "RCC"],
+                    ["Quantity", "1", "Type", "Extended Aeration"]
+                ],
+                [20, 30, 20, 30]
+            ));
 
             // 4.14 Aeration System Components
-            createEquipSection("4.14", "Aeration System Components", null, null,
-                ["Parameter", "Specification"],
+            sections.push(createHeading("4.14 Aeration System Components", 2));
+
+            // A) Surface Aerators
+            sections.push(createParagraph("A) Surface Aerators [Scope: EDI]", { textOptions: { bold: true } }));
+            sections.push(createSimpleTable(
+                null,
                 [
-                    ["Aerators", "Surface Aerators, Make: Indofab"],
-                    ["Blowers", "Tri-lobe, Make: KPT"]
-                ]
-            );
+                    ["Motor HP", "5 HP", "Make", "Indofab"],
+                    ["Type", "Surface aerator", "Quantity", "9"]
+                ],
+                [25, 25, 25, 25]
+            ));
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+
+            // B) Air Blowers
+            sections.push(createParagraph("B) Air Blowers [Scope: EDI]", { textOptions: { bold: true } }));
+            sections.push(createSimpleTable(
+                null,
+                [
+                    ["Total Air Req", "17177.50 Nm³/day", "Air Flow", "715.73 Nm³/hr"],
+                    ["Head", "5000 mWC", "Make", "KPT"],
+                    ["Type", "Tri lobe", "Quantity", "2 (1W+1S)"]
+                ],
+                [25, 25, 25, 25]
+            ));
 
             // 4.15 Secondary Clarifier System
             createEquipSection("4.15", "Secondary Clarifier System", null, null,
@@ -743,44 +807,16 @@ export const generateProposalWord = async (data) => {
             ]
         );
 
-        // 4.19 Other Major Equipment (Tertiary Filters)
-        if (mgfCalculations || acfCalculations) {
-            sections.push(createHeading("4.19 Other Major Equipment", 2));
-
-            if (mgfCalculations) {
-                sections.push(createHeading("4.19.1 Multigrade Filter (MGF)", 3));
-                sections.push(createSimpleTable(
-                    ["Parameter", "Specification"],
-                    [
-                        ["Design Flow", `${mgfCalculations.designFlow || 0} m3/hr`],
-                        ["Filtration Rate", `${mgfSpecs?.filtrationRate || 10} m3/m2/hr`],
-                        ["Filter Area Required", `${mgfCalculations.areaReq || 0} m2`],
-                        ["Number of Filters", `${mgfCalculations.numMGF || 1} Nos`],
-                        ["Dia of Filter", `${mgfSpecs?.diameter || 1} m`],
-                        ["MOC", "MS Epoxy / FRP"],
-                        ["Backwash Pump", `${mgfCalculations.backwashPumpCap || 0} m3/hr @ 18m Head`]
-                    ],
-                    [50, 50]
-                ));
-            }
-
-            if (acfCalculations) {
-                sections.push(createHeading("4.19.2 Activated Carbon Filter (ACF)", 3));
-                sections.push(createSimpleTable(
-                    ["Parameter", "Specification"],
-                    [
-                        ["Design Flow", `${acfCalculations.designFlow || 0} m3/hr`],
-                        ["Filtration Rate", `${acfSpecs?.filtrationRate || 10} m3/m2/hr`],
-                        ["Filter Area Required", `${acfCalculations.areaReq || 0} m2`],
-                        ["Number of Filters", `${acfCalculations.numACF || 1} Nos`],
-                        ["Dia of Filter", `${acfSpecs?.diameter || 1} m`],
-                        ["MOC", "MS Epoxy / FRP"],
-                        ["Backwash Pump", `${acfCalculations.backwashPumpCap || 0} m3/hr @ 18m Head`]
-                    ],
-                    [50, 50]
-                ));
-            }
-        }
+        // 4.19 Other Major Equipment
+        sections.push(createHeading("4.19 Other Major Equipment", 2));
+        sections.push(createSimpleTable(
+            ["Equipment Name", "Specifications", "Scope"],
+            [
+                ["Sludge Dewatering", "Screw Press / Centrifuge", "EDI"],
+                ["Tertiary Filters", "MGF + ACF, MS Epoxy", "EDI"]
+            ],
+            [35, 45, 20]
+        ));
 
         // 4.20 Instrumentation
         if (instruments && instruments.length > 0) {

@@ -27,24 +27,57 @@ export const technologyOverview = {
     sections: [
         {
             title: "ELAR (Elevated Anaerobic Reactor)",
-            bullets: [
-                { title: "Working Principle", text: "The ELAR is a high-rate anaerobic system designed for industrial wastewater. It utilizes a granular sludge blanket to degrade organic matter, producing biogas as a valuable by-product." },
-                { title: "Key Features", text: "Compact design, High organic loading capacity, Flexible biomass retention, Efficient energy recovery (biogas)." },
-                { title: "Applications", text: "Suitable for high COD wastewaters including paper mills, starch, distilleries, and food processing industries." }
+            intro: "The ELAR is a high-rate anaerobic system designed for industrial wastewater. It utilizes a granular sludge blanket to degrade organic matter, producing biogas as a valuable by-product.",
+            subsections: [
+                {
+                    heading: "Working Principle",
+                    text: "The ELAR is a high-rate anaerobic system designed for industrial wastewater. It utilizes a granular sludge blanket to degrade organic matter, producing biogas as a valuable by-product."
+                },
+                {
+                    heading: "Key Features & Advantages",
+                    bullets: [
+                        "Compact design with small footprint",
+                        "High organic loading capacity",
+                        "Flexible biomass retention",
+                        "Efficient energy recovery (biogas)"
+                    ]
+                },
+                {
+                    heading: "Applications",
+                    text: "Suitable for high COD wastewaters including paper mills, starch, distilleries, and food processing industries."
+                }
             ]
         },
         {
             title: "Aerobic Treatment System",
-            bullets: [
-                { title: "Process", text: "Utilizes activated sludge process where microorganisms degrade remaining organics in the presence of oxygen. Serves as a post-anaerobic treatment stage to polish the effluent." },
-                { title: "Key Parameters", text: "Calcium precipitation mechanism integration; MLSS Range: 5,000-10,000 mg/L; MLVSS: 40-50%." }
+            intro: "The aerobic tank serves as a post-anaerobic treatment stage to polish the effluent. It utilizes activated sludge process where microorganisms degrade remaining organics in the presence of oxygen.",
+            subsections: [
+                {
+                    heading: "Key Parameters & Mechanism",
+                    bullets: [
+                        "Calcium precipitation mechanism integration for scaling control",
+                        "MLSS Range: 5,000 - 10,000 mg/L for high stability",
+                        "MLVSS: 40 - 50% indicating active biomass",
+                        "High efficiency oxygen transfer system for energy savings",
+                        "Robust biological reduction of residual COD and BOD"
+                    ]
+                }
             ]
         },
         {
             title: "Secondary Clarification",
-            bullets: [
-                { title: "Function", text: "Designed for effective solid-liquid separation after the aerobic stage. It ensures high-quality effluent and proper sludge recirculation." },
-                { title: "Specifications", text: "Optimized Hydraulic Loading Rate (HLR), Controlled Solids Loading Rate (SLR), Efficient Return Activated Sludge (RAS) system." }
+            intro: "Designed for effective solid-liquid separation after the aerobic stage. It ensures high-quality effluent and proper sludge recirculation.",
+            subsections: [
+                {
+                    heading: "Specifications & Operation",
+                    bullets: [
+                        "Optimized Hydraulic Loading Rate (HLR) for clear separation",
+                        "Controlled Solids Loading Rate (SLR) to handle biomass flux",
+                        "Efficient Return Activated Sludge (RAS) system to maintain MLSS",
+                        "Waste Activated Sludge (WAS) management for excess biomass removal",
+                        "Ensures final effluent meets discharge or recycle quality norms"
+                    ]
+                }
             ]
         }
     ]
@@ -53,14 +86,14 @@ export const technologyOverview = {
 export const processDescription = {
     title: "2.2 Process Description",
     items: [
-        { title: "DAF", text: "Removes suspended solids and fats/oils/grease (FOG) from the raw effluent using micro-bubbles to protect downstream biological systems." },
-        { title: "Pre-Acidification", text: "Conditions the wastewater (pH adjustment, partial acidification) before entering the anaerobic reactor. Degree of acidification is controlled (<40%) to prevent scaling." },
-        { title: "ELAR", text: "The main biological treatment stage where organic pollutants are converted into biogas. Features internal three-phase separation (Gas-Liquid-Solid)." },
-        { title: "Biogas & Flare", text: "Generated biogas is collected in a constant pressure gas holder. Excess gas is safely burned via an automated flare stack system." },
-        { title: "Biomass Tank", text: "Stores excess granular sludge for future use or system restart." },
-        { title: "Aeration Tank", text: "An oxygen-rich environment where aerobic bacteria further degrade COD/BOD to meet final discharge norms." },
-        { title: "Secondary Clarifier", text: "Separates biological sludge from treated water by gravity settling. Settled sludge is recycled (RAS)." },
-        { title: "Sludge Handling", text: "Excess biological and chemical sludge is dewatered using a screw press or centrifuge." }
+        { title: "DAF", text: "The Dissolved Air Flotation (DAF) unit removes suspended solids and fats/oils/grease (FOG) from the raw effluent using micro-bubbles. This pre-treatment step protects downstream biological systems from inert solids accumulation and shock loads." },
+        { title: "Pre-Acidification", text: "This tank conditions the wastewater, adjusting pH and ensuring partial acidification (VFA generation) before entering the anaerobic reactor. Degree of acidification is controlled <40% to prevent scaling issues. Includes necessary agitation to maintain homogeneity." },
+        { title: "ELAR", text: "The main biological treatment stage where organic pollutants are converted into biogas by anaerobic bacteria in a controlled, oxygen-free environment. Features internal three-phase separation (Gas-Liquid-Solid) to retain granular biomass while releasing biogas and treated effluent. Includes sampling points and instrumentation for process monitoring." },
+        { title: "Biogas & Flare", text: "Biogas generated is collected in a constant pressure gas holder. Excess gas is safely burned via an automated flare stack system to prevent atmospheric discharge. System includes safety devices like flame arrestors, pressure relief valves, and condensate traps." },
+        { title: "Biomass Tank", text: "Stores excess granular sludge or biomass for future use or system restart, preserving valuable biological inventory. Essential for quick recovery after shutdowns or upsets." },
+        { title: "Aeration Tank", text: "An oxygen-rich environment where aerobic bacteria further degrade COD/BOD to meet final discharge norms. Equipped with fine bubble or surface aeration systems to provide dissolved oxygen and mixing." },
+        { title: "Secondary Clarifier", text: "Separates biological sludge from treated water by gravity settling. Settled sludge is recycled to the aeration tank (RAS) to maintain MLSS, while clear overflow water is discharged for tertiary treatment or disposal." },
+        { title: "Sludge Handling", text: "Generates excess biological and chemical sludge is dewatered using a screw press or centrifuge to reduce volume before disposal. Includes polymer dosing system for sludge conditioning." }
     ]
 };
 
@@ -82,6 +115,19 @@ export const performanceGuarantees = {
             { param: "Secondary Clarifier Outlet SCOD", val: "~250 mg/l" },
             { param: "Secondary Clarifier Outlet TSS", val: "50 mg/l" },
             { param: "Secondary Clarifier Outlet BOD", val: "30 mg/l" }
+        ]
+    },
+    importantConsiderations: {
+        title: "Important Considerations",
+        bullets: [
+            "Client has to ensure strict adherence to the limiting parameters like pH, TSS, Temperature etc.",
+            "Anaerobic reactor performance depends on the VFA, Alkalinity, pH and Temperature inside the reactor.",
+            "Biogas generation depends on the COD reduction and VFA profile.",
+            "Acid sizing chemicals (Rosins/Alum) should be minimized or substituted as they inhibit anaerobic activity.",
+            "Oxidizing biocides (Hypo, Chlorine Dioxide, Bromine etc.) are strictly prohibited.",
+            "Mill must ensure discharge is approx 200 m3/day and fresh water intake is restricted to 800 m3/day.",
+            "Approx 5,300 m3/day treated water to be recycled to pulping section.",
+            "Mill retention time should be less than 24 hours to prevent VFA generation in the mill loop itself."
         ]
     }
 };
@@ -113,11 +159,15 @@ export const theoryContent = {
     },
     vfa: {
         title: "3.3 Impact of Higher VFA (Volatile Fatty Acids)",
-        text: "In RCF based paper mills, high VFA concentrations dissociate Calcium Carbonate (CaCO3) into Calcium Acetate. Inside the reactor, this degrades back to CaCO3, causing calcium scaling on biomass.",
-        bullets: [
-            "Consequences: Reduces effective surface area, Increases sludge density, Interferes with mass transfer.",
-            "Control Measure: Maintain Pre-acidification degree < 40% to minimize scaling risks."
-        ]
+        text: "In RCF based paper mills, VFA concentration is generally on the higher side. Due to anaerobic activity inside the reactor, VFA is converted into methane and carbon dioxide. Calcium reacts with acetate to form Calcium Acetate, which eventually degrades to Calcium Carbonate (CaCO3).",
+        equation: "CaCO3 + 2CH3COOH → Ca(CH3COO)2 + H2O + CO2",
+        consequencesTitle: "Negative Consequences of Calcium Deposition:",
+        consequences: [
+            "Reduces effective surface area for microbial activity.",
+            "Increases sludge density, leading to poor settling or granule disintegration.",
+            "Interferes with mass transfer, lowering reactor efficiency."
+        ],
+        controlMeasure: "Control Measure: Maintain Pre-acidification degree <40% to minimize scaling risks."
     }
 };
 
