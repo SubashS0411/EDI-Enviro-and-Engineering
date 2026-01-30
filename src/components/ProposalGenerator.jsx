@@ -503,25 +503,7 @@ const Step1 = ({
         </table>
       </div>
 
-      {/* {anaerobicTank && (
-        <div className="bg-white p-4 rounded-lg border border-emerald-100 shadow-sm mb-4">
-          <h4 className="font-bold text-emerald-800 mb-2 border-b border-emerald-50 pb-2">Anaerobic Reactor Dimensions</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <SelectField
-              label="Reactor Diameter (m)"
-              value={anaerobicTank.selectedDiameter || ''}
-              onChange={(val) => setAnaerobicTank(prev => ({ ...prev, selectedDiameter: val, diameter: val }))}
-              options={diameterOptions}
-            />
-            <SelectField
-              label="Reactor Height (m)"
-              value={anaerobicTank.selectedHeight || ''}
-              onChange={(val) => setAnaerobicTank(prev => ({ ...prev, selectedHeight: val, height: val }))}
-              options={heightOptions}
-            />
-          </div>
-        </div>
-      )} */}
+
 
       <WarningBox warnings={warnings} />
 

@@ -169,6 +169,11 @@ export const generateProposalWord = async (data) => {
             treatedWaterTank = {},
             treatedWaterPump = {},
             tertiarySpecs = {}, // MGF/ACF
+            mgfSpecs,
+            mgfCalculations,
+            acfSpecs,
+            acfCalculations,
+            sludgeCalculationDetails,
             instruments = [],
             pipingSpecs = {},
             valveSpecs = {}
@@ -258,7 +263,10 @@ export const generateProposalWord = async (data) => {
             createParagraph(`Client: ${safeString(clientInfo.clientName)}`, { textOptions: { bold: true, size: 28 }, alignment: AlignmentType.CENTER }),
             createParagraph(`Reference: ${safeString(clientInfo.referenceNumber)}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
             createParagraph(`Date: ${new Date().toLocaleDateString()}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
-            new PageBreak(), // Explicit break before ToC
+            createParagraph(`Date: ${new Date().toLocaleDateString()}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
+            new Paragraph({
+                children: [new PageBreak()]
+            }),
 
             // ==========================================
             // PAGE 2: TABLE OF CONTENTS
@@ -600,7 +608,6 @@ export const generateProposalWord = async (data) => {
         createEquipSection("4.8", "Anaerobic Reactor System", null, null,
             ["Parameter", "Specification"],
             [
-                ["Dimensions", safeString(anaerobicTank.dimensions || "Dia 9m x 24m Ht")],
                 ["Capacity", safeString(anaerobicTank.capacity || "1527 m3")],
                 ["Type", "Vertical, MSEP (Site Fabrication)"],
                 ["Stand Pipe", "MSEP"]
@@ -681,13 +688,23 @@ export const generateProposalWord = async (data) => {
         );
 
         // 4.17 Sludge Management System [Scope: EDI]
-        createEquipSection("4.17", "Sludge Management System", "EDI", null,
+        sections.push(createHeading("4.17 Sludge Management System", 2));
+
+        const sludgeSpecs = sludgeCalculationDetails || {};
+        const sludgeRows = [
+            ["Dewatering Mechanism", sludgeSpecs.dewateringMechanism || (sludgeSpecs.screwPressRequired ? "Screw Press" : "Decanter Centrifuge")],
+            ["Capacity", `${sludgeSpecs.dewateringCapacityTons || 0} Tons/day Solids`],
+            ["Processing Rate", `${sludgeSpecs.dewateringProcessingCapacityKgHr || 0} kg/hr`],
+            ["Polymer Dosing System", "Auto Dosing System"],
+            ["Dosing Tank", `${sludgeSpecs.dosingTankSpecs?.qty || 1} No. x ${sludgeSpecs.dosingTankSpecs?.capacity || 500} Lit`],
+            ["Dosing Pump", `${sludgeSpecs.dosingPumpSpecs?.qty || '2 Nos'} x ${sludgeSpecs.dosingPumpSpecs?.capacity || 50} LPH`]
+        ];
+
+        sections.push(createSimpleTable(
             ["Parameter", "Specification"],
-            [
-                ["Dewatering", "Screw Press / Centrifuge"],
-                ["Poly Dosing", "Preparation & Dosing Tanks with Pumps"]
-            ]
-        );
+            sludgeRows,
+            [50, 50]
+        ));
 
         // 4.18 Treated Water Handling
         createEquipSection("4.18", "Treated Water Handling", null, null,
@@ -698,16 +715,59 @@ export const generateProposalWord = async (data) => {
             ]
         );
 
-        // 4.19 Other Major Equipment
-        createEquipSection("4.19", "Other Major Equipment", null, null,
-            ["Equipment", "Specification", "Scope"],
-            [
-                ["Tertiary Filters", "MGF + ACF, MS Epoxy", "EDI"],
-                ["Instruments", "Flow, Level, pH, Temp transmitters", "EDI"]
-            ],
-            ["Equipment", "Specification", "Scope"],
-            [40, 40, 20]
-        );
+        // 4.19 Tertiary Treatment (Filters)
+        if (mgfCalculations || acfCalculations) {
+            sections.push(createHeading("4.19 Tertiary Treatment System", 2));
+
+            if (mgfCalculations) {
+                sections.push(createHeading("4.19.1 Multigrade Filter (MGF)", 3));
+                sections.push(createSimpleTable(
+                    ["Parameter", "Specification"],
+                    [
+                        ["Design Flow", `${mgfCalculations.designFlow || 0} m3/hr`],
+                        ["Filtration Rate", `${mgfSpecs?.filtrationRate || 10} m3/m2/hr`],
+                        ["Filter Area Required", `${mgfCalculations.areaReq || 0} m2`],
+                        ["Number of Filters", `${mgfCalculations.numMGF || 1} Nos`],
+                        ["Dia of Filter", `${mgfSpecs?.diameter || 1} m`],
+                        ["MOC", "MS Epoxy / FRP"],
+                        ["Backwash Pump", `${mgfCalculations.backwashPumpCap || 0} m3/hr @ 18m Head`]
+                    ],
+                    [50, 50]
+                ));
+            }
+
+            if (acfCalculations) {
+                sections.push(createHeading("4.19.2 Activated Carbon Filter (ACF)", 3));
+                sections.push(createSimpleTable(
+                    ["Parameter", "Specification"],
+                    [
+                        ["Design Flow", `${acfCalculations.designFlow || 0} m3/hr`],
+                        ["Filtration Rate", `${acfSpecs?.filtrationRate || 10} m3/m2/hr`],
+                        ["Filter Area Required", `${acfCalculations.areaReq || 0} m2`],
+                        ["Number of Filters", `${acfCalculations.numACF || 1} Nos`],
+                        ["Dia of Filter", `${acfSpecs?.diameter || 1} m`],
+                        ["MOC", "MS Epoxy / FRP"],
+                        ["Backwash Pump", `${acfCalculations.backwashPumpCap || 0} m3/hr @ 18m Head`]
+                    ],
+                    [50, 50]
+                ));
+            }
+        }
+
+        // 4.20 Instrumentation
+        if (instruments && instruments.length > 0) {
+            sections.push(createHeading("4.20 Instrumentation", 2));
+            const instrumentRows = instruments.map(inst => {
+                const parts = inst.split(' - ');
+                return [parts[0] || inst, parts[1] || '-', parts[2] || '-']; // Name, Location, Range/Type
+            });
+
+            sections.push(createSimpleTable(
+                ["Instrument", "Location", "Range / Type"],
+                instrumentRows,
+                [30, 40, 30]
+            ));
+        }
 
         // 4.21 Pipings (Skip 4.20)
         sections.push(createHeading("4.21 Pipings", 2));

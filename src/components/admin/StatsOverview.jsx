@@ -105,6 +105,23 @@ const StatsOverview = ({ requests }) => {
                     </div>
                 </div>
             </div>
+            {/* Pricing Plans Reference */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Current Pricing Plans</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                        { name: 'Monthly', price: '₹125,000', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                        { name: 'Quarterly', price: '₹300,000', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+                        { name: 'Half Yearly', price: '₹500,000', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+                        { name: 'Yearly', price: '₹900,000', color: 'text-emerald-400', bg: 'bg-emerald-500/10' }
+                    ].map((plan) => (
+                        <div key={plan.name} className={`p-4 rounded-xl border border-white/5 ${plan.bg}`}>
+                            <p className="text-slate-400 text-xs uppercase tracking-wider font-bold mb-1">{plan.name}</p>
+                            <p className={`text-xl font-bold ${plan.color}`}>{plan.price}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 };
