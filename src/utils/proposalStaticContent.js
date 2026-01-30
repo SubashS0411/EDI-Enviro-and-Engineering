@@ -23,7 +23,7 @@ export const staticDesignBasis = {
 };
 
 export const technologyOverview = {
-    title: "2.2 Technology Overview",
+    title: "2.1 Technology Overview",
     sections: [
         {
             title: "ELAR (Elevated Anaerobic Reactor)",
@@ -51,7 +51,7 @@ export const technologyOverview = {
 };
 
 export const processDescription = {
-    title: "2.3 Process Description",
+    title: "2.2 Process Description",
     items: [
         { title: "DAF", text: "Removes suspended solids and fats/oils/grease (FOG) from the raw effluent using micro-bubbles to protect downstream biological systems." },
         { title: "Pre-Acidification", text: "Conditions the wastewater (pH adjustment, partial acidification) before entering the anaerobic reactor. Degree of acidification is controlled (<40%) to prevent scaling." },
@@ -65,7 +65,7 @@ export const processDescription = {
 };
 
 export const performanceGuarantees = {
-    title: "2.4 Performance Guarantees",
+    title: "2.3 Performance Guarantees",
     anaerobic: {
         title: "Anaerobic Section",
         headers: ["Parameter", "Guaranteed Value"],
