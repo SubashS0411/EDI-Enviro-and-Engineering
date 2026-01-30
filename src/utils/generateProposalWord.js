@@ -20,7 +20,15 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 import { clientScopeData } from './clientScopeData';
-import { staticDesignBasis, staticGuarantees, theoryContent } from './proposalStaticContent';
+import {
+    staticDesignBasis,
+    technologyOverview,
+    processDescription,
+    performanceGuarantees,
+    theoryContent,
+    exclusionsList,
+    exclusionsConclusion
+} from './proposalStaticContent';
 
 // --- Helpers for Safe Text Handling ---
 
@@ -52,18 +60,19 @@ const createParagraph = (textOrRuns, options = {}) => {
         spacing: {
             before: options.spacingBefore || 120,
             after: options.spacingAfter || 120,
-            line: 276 // 1.15 line spacing
+            line: 360 // 1.5 line spacing for better readability
         },
-        alignment: options.alignment || AlignmentType.LEFT,
+        alignment: options.alignment || AlignmentType.JUSTIFIED, // Justified text
         bullet: options.bullet ? { level: 0 } : undefined,
         indent: options.indent
     });
 };
 
 const createHeading = (text, level = 1) => {
-    const size = level === 1 ? 32 : (level === 2 ? 28 : 24); // 16pt, 14pt, 12pt
+    // Increased sizes: Level 1=36(18pt), Level 2=32(16pt), Level 3=28(14pt)
+    const size = level === 1 ? 36 : (level === 2 ? 32 : 28);
     return new Paragraph({
-        children: [createText(text, { bold: true, size, color: "006400" })],
+        children: [createText(text, { bold: true, size, color: "2E74B5" })], // Blue color (2E74B5 is a standard professional blue)
         spacing: { before: 240, after: 120 },
         alignment: AlignmentType.LEFT,
         heading: level === 1 ? "Heading1" : (level === 2 ? "Heading2" : "Heading3")
@@ -138,48 +147,31 @@ export const generateProposalWord = async (data) => {
             clientInfo = {},
             params = [],
             anaerobicFeedParams = [],
-            guarantees = {},
-            daf = {},
-            dafPolyDosing = {},
-            dafPolyDosingCalc = {},
-            dafCoagulantDosing = {},
-            dafCoagulantDosingCalc = {},
-            anaerobicTank = {},
-            anaerobicFeedPump = {},
-            biomassPump = {},
-            biomassHoldingTank = {},
-            biogasHolder = {},
-            biogasFlare = {},
-            aerationTank = {},
-            airBlower = {},
-            sludgeCalculationDetails = {},
-            mgfSpecs = {},
-            mgfCalculations = {},
-            acfSpecs = {},
-            acfCalculations = {},
-            performanceResults = {},
-            equipment = [],
-            importantConsiderationsPoints = [],
-            dosingSystems = {},
-            dosingBreakdowns = {},
-            screens = {},
-            preAcid = {},
+            // Equipment Data & Standard Inputs
             primaryClarifier = {},
             primaryClarifierMech = {},
-            primarySludgePump = {},
+            primarySludgePump = {}, // Fallback if needed
+            coolingSystem = {},
+            preAcid = {}, // existing pre-acid tank
+            anaerobicFeedPump = {},
+            anaerobicTank = {}, // Reactor System
+            biomassPump = {},
+            biogasHolder = {},
+            biogasFlare = {},
+            biomassHoldingTank = {},
+            aerationTank = {},
+            airBlower = {}, // Aeration Comps
+            aerators = {}, // Aeration Comps
             secondaryClarifierTank = {},
             secondaryClarifierMech = {},
             sludgeRecircPump = {},
+            sludgeSystem = {}, // Dewatering
             treatedWaterTank = {},
             treatedWaterPump = {},
-            coolingSystem = {},
+            tertiarySpecs = {}, // MGF/ACF
             instruments = [],
-            proposalDetails = {},
-            sludgeSystem = {},
-            biogasCivil = {},
-            standPipe = {},
-            aerators = {},
-            diffusers = {}
+            pipingSpecs = {},
+            valveSpecs = {}
         } = data || {};
 
         const sections = [];
@@ -221,8 +213,8 @@ export const generateProposalWord = async (data) => {
                                 new TableCell({
                                     children: [
                                         createParagraph(safeString(clientInfo.clientName), { alignment: AlignmentType.RIGHT, textOptions: { size: 16, color: "555555" }, spacingAfter: 0 }),
-                                        createParagraph(safeString(clientInfo.address), { alignment: AlignmentType.RIGHT, textOptions: { size: 14, color: "555555" }, spacingAfter: 0 }),
-                                        createParagraph(`Ref: ${safeString(clientInfo.referenceNumber)}`, { alignment: AlignmentType.RIGHT, textOptions: { size: 14, color: "555555" } })
+                                        createParagraph(`Ref: ${safeString(clientInfo.referenceNumber)}`, { alignment: AlignmentType.RIGHT, textOptions: { size: 14, color: "555555" }, spacingAfter: 0 }),
+                                        createParagraph(`Date: ${new Date().toLocaleDateString()}`, { alignment: AlignmentType.RIGHT, textOptions: { size: 14, color: "555555" } })
                                     ],
                                     width: { size: 40, type: WidthType.PERCENTAGE },
                                     verticalAlign: VerticalAlign.TOP,
@@ -241,7 +233,7 @@ export const generateProposalWord = async (data) => {
             children: [
                 new Paragraph({
                     children: [
-                        createText("Reg. Office: 93/1B, Sadayampattu (Vill), Somandargudi (PO), Kallakurichi (TK&DT) - 606202 | Page ", { size: 14, color: "888888" }),
+                        createText("EDI Enviro & Engineering | Page ", { size: 14, color: "888888" }),
                         new SimpleField("PAGE"),
                         createText(" of ", { size: 14, color: "888888" }),
                         new SimpleField("NUMPAGES")
@@ -254,7 +246,7 @@ export const generateProposalWord = async (data) => {
 
 
         // ==========================================
-        // PAGE 1-2: COVER PAGE
+        // PAGE 1: COVER PAGE
         // ==========================================
 
         sections.push(
@@ -263,29 +255,48 @@ export const generateProposalWord = async (data) => {
             createParagraph("FOR", { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
             createParagraph(clientInfo.proposalTitle || "WASTEWATER TREATMENT PLANT", { textOptions: { bold: true, size: 36, color: "006400" }, alignment: AlignmentType.CENTER, spacingAfter: 800 }),
             new Paragraph({ text: "", spacing: { before: 1500 } }),
-            createParagraph("PREPARED FOR:", { textOptions: { bold: true, size: 24, color: "555555" }, alignment: AlignmentType.CENTER }),
-            createParagraph(clientInfo.clientName || "Client Name", { textOptions: { bold: true, size: 32 }, alignment: AlignmentType.CENTER }),
-            createParagraph(clientInfo.address || "Address", { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
-            new Paragraph({ text: "", spacing: { before: 1500 } }),
-            createParagraph(`Date: ${new Date().toLocaleDateString()}`, { alignment: AlignmentType.CENTER }),
-            createParagraph(`Reference: ${safeString(clientInfo.referenceNumber)}`, { alignment: AlignmentType.CENTER }),
-            new Paragraph({ text: "", spacing: { before: 2000 } }),
-            createParagraph("PROPRIETARY & CONFIDENTIAL", { textOptions: { size: 20, color: "888888", italics: true }, alignment: AlignmentType.CENTER }),
-            createParagraph("This document contains proprietary information of EDI Enviro and Engineering. It is submitted in confidence and shall not be disclosed, used, or duplicated in whole or in part for any purpose other than to evaluate this proposal.", { textOptions: { size: 16, color: "888888", italics: true }, alignment: AlignmentType.CENTER }),
-            new PageBreak()
-        );
+            createParagraph(`Client: ${safeString(clientInfo.clientName)}`, { textOptions: { bold: true, size: 28 }, alignment: AlignmentType.CENTER }),
+            createParagraph(`Reference: ${safeString(clientInfo.referenceNumber)}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
+            createParagraph(`Date: ${new Date().toLocaleDateString()}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
+            new PageBreak(), // Explicit break before ToC
 
-        // ==========================================
-        // PAGE 3: TABLE OF CONTENTS
-        // ==========================================
+            // ==========================================
+            // PAGE 2: TABLE OF CONTENTS
+            // ==========================================
 
-        sections.push(
             createHeading("Table of Contents"),
-            createParagraph("1. Client Details & Design Basis"),
-            createParagraph("2. Influent Parameters & Technology"),
-            createParagraph("3. Process Impact Analysis"),
-            createParagraph("4. Process Equipment Specifications"),
-            createParagraph("5. Exclusions"),
+            createParagraph("1. Client Details & Design Basis", { textOptions: { bold: true } }),
+            createParagraph("2. Influent Parameters", { textOptions: { bold: true } }),
+            createParagraph("   2.2 Technology Overview"),
+            createParagraph("   2.3 Process Description"),
+            createParagraph("   2.4 Performance Guarantees"),
+            createParagraph("3. Process Impact Analysis", { textOptions: { bold: true } }),
+            createParagraph("   3.1 Impact of Bromide"),
+            createParagraph("   3.2 Impact of Heavy Metals"),
+            createParagraph("   3.3 Impact of Higher VFA"),
+            createParagraph("4. Process Equipment Specifications", { textOptions: { bold: true } }),
+            createParagraph("   4.1 Dissolved Air Flotation (DAF) [Scope: EDI]"),
+            createParagraph("   4.2 Chemical Dosing Systems"),
+            createParagraph("   4.3 Screening System [Scope: EDI]"),
+            createParagraph("   4.4 Primary Clarification System [Scope: Client]"),
+            createParagraph("   4.5 Cooling System (PHE) [Scope: EDI]"),
+            createParagraph("   4.6 Pre-acidification Tank [Scope: Client]"),
+            createParagraph("   4.7 Anaerobic Feed Pump [Scope: EDI]"),
+            createParagraph("   4.8 Anaerobic Reactor System"),
+            createParagraph("   4.9 Biomass Transfer Pump [Scope: EDI]"),
+            createParagraph("   4.10 Biogas Handling System"),
+            createParagraph("   4.11 Biomass Holding Tank [Scope: EDI]"),
+            createParagraph("   4.12 Start-up Granular Biomass"),
+            createParagraph("   4.13 Aeration Tank System [Scope: Client]"),
+            createParagraph("   4.14 Aeration System Components"),
+            createParagraph("   4.15 Secondary Clarifier System"),
+            createParagraph("   4.16 Sludge Recirculation Pump [Scope: EDI]"),
+            createParagraph("   4.17 Sludge Management System [Scope: EDI]"),
+            createParagraph("   4.18 Treated Water Handling"),
+            createParagraph("   4.19 Other Major Equipment"),
+            createParagraph("   4.21 Pipings"),
+            createParagraph("   4.22 Valves"),
+            createParagraph("5. Exclusions from Scope of Supply & Services", { textOptions: { bold: true } }),
             new PageBreak()
         );
 
@@ -303,6 +314,8 @@ export const generateProposalWord = async (data) => {
                     ["Production Capacity", `${safeString(clientInfo.productionCapacity)} TPD`],
                     ["Specific COD", `${safeString(clientInfo.specificCOD)} kg/ton`],
                     ["Calculated COD Load", `${safeString(clientInfo.calcCODLoad)} kg/day`],
+                    ["Raw Material", safeString(clientInfo.rawMaterial) || "-"],
+                    ["Final Products", safeString(clientInfo.finalProducts) || "-"],
                     ["Date", new Date().toLocaleDateString()]
                 ],
                 [40, 60]
@@ -311,20 +324,21 @@ export const generateProposalWord = async (data) => {
         );
 
         // ==========================================
-        // SECTION 2: INFLUENT PARAMETERS & TECHNOLOGY
+        // SECTION 2: INFLUENT PARAMETERS
         // ==========================================
 
         sections.push(
             createHeading("2. Influent Parameters"),
             createSimpleTable(
-                ["Parameter", "Unit", "Inlet Water Characteristics (DAF Feed)", "Anaerobic Feed Water Characteristics"],
-                params.map(p => {
-                    const anaP = anaerobicFeedParams.find(ap => ap.id === p.id);
+                ["Parameter", "Unit", "Inlet Water Characteristics", "Anaerobic Feed Water Characteristics"],
+                staticDesignBasis.parameters.map(p => {
+                    const userParam = params.find(up => (up.name === p.param) || (up.id === p.sn)); // Best effort match
+                    const userAnaParam = anaerobicFeedParams.find(up => (up.name === p.param) || (up.id === p.sn));
                     return [
-                        safeString(p.name),
+                        safeString(p.param),
                         safeString(p.unit),
-                        safeString(p.value),
-                        safeString(anaP ? anaP.value : '')
+                        safeString(userParam ? userParam.value : p.raw),
+                        safeString(userAnaParam ? userAnaParam.value : p.anaInlet)
                     ];
                 }),
                 [25, 15, 30, 30]
@@ -333,43 +347,34 @@ export const generateProposalWord = async (data) => {
             ...staticDesignBasis.notes.map((note, i) => createParagraph(`${i + 1}. ${note}`, { spacingBefore: 60 })),
             new Paragraph({ text: "", spacing: { before: 240 } }),
 
-            createHeading("2.2 Technology Overview", 2),
-            createHeading("Pre-Treatment (Screens & DAF)", 3),
-            createParagraph("Raw effluent passes through fine screens to remove coarse solids, followed by Dissolved Air Flotation (DAF) to float and remove suspended solids, oils, and grease."),
+            // 2.2 Technology Overview
+            createHeading(technologyOverview.title, 2),
+            ...technologyOverview.sections.flatMap(sec => [
+                createParagraph(sec.title, { textOptions: { bold: true } }),
+                ...sec.bullets.map(b => createParagraph(`• ${b.title}: ${b.text}`, { indent: { left: 360 } }))
+            ]),
+            new Paragraph({ text: "", spacing: { before: 240 } }),
 
-            createHeading("Anaerobic Treatment (ELAR)", 3),
-            createParagraph("The conditioned effluent enters the High-Rate Anaerobic Reactor (ELAR). Granular sludge degrades organic matter (COD/BOD) in the absence of oxygen, producing biogas and treated water."),
+            // 2.3 Process Description
+            createHeading(processDescription.title, 2),
+            ...processDescription.items.map(item =>
+                createParagraph(`• ${item.title}: ${item.text}`, { indent: { left: 360 } })
+            ),
+            new Paragraph({ text: "", spacing: { before: 240 } }),
 
-            createHeading("Aerobic Treatment (Extended Aeration)", 3),
-            createParagraph("Post-anaerobic effluent flows to the Aeration Tank. Surface aerators/diffusers provide oxygen for bacteria to degrade residual organics. The mixed liquor is then separated in a Secondary Clarifier."),
-
-            createHeading("Tertiary Treatment", 3),
-            createParagraph("Clarified water is filtered through a Multigrade Filter (MGF) and Activated Carbon Filter (ACF) to remove traces of solids, color, and odor."),
-
-            createHeading("2.3 Process Description", 2),
-            createParagraph("DAF: Removes suspended solids and protects downstream biology."),
-            createParagraph("Pre-Acidification: Conditions wastewater pH and VFA levels (<40% acidification) to prevent scaling."),
-            createParagraph("ELAR: Main biological degradation stage with 3-phase separation."),
-            createParagraph("Biogas: Collected in a gas holder; excess is flared."),
-            createParagraph("Aeration: Polishing stage for final BOD reduction."),
-            createParagraph("Clarification: Solids separation with Sludge Recirculation (RAS)."),
-            createParagraph("Sludge Handling: Dewatering via Screw Press."),
-
-            new PageBreak(),
-
-            createHeading("2.4 Performance Guarantees", 2),
-
-            createHeading("Anaerobic Section", 3),
+            // 2.4 Performance Guarantees
+            createHeading(performanceGuarantees.title, 2),
+            createHeading(performanceGuarantees.anaerobic.title, 3),
             createSimpleTable(
-                ["Parameter", "Guaranteed Value"],
-                staticGuarantees.anaerobic.map(p => [safeString(p.param), safeString(p.unit)]),
+                performanceGuarantees.anaerobic.headers,
+                performanceGuarantees.anaerobic.data.map(d => [d.param, d.val]),
                 [50, 50]
             ),
-
-            createHeading("Aerobic Section (Secondary Clarifier Outlet)", 3),
+            new Paragraph({ text: "", spacing: { before: 240 } }),
+            createHeading(performanceGuarantees.aerobic.title, 3),
             createSimpleTable(
-                ["Parameter", "Guaranteed Value"],
-                staticGuarantees.aerobic.map(p => [safeString(p.param), safeString(p.unit)]),
+                performanceGuarantees.aerobic.headers,
+                performanceGuarantees.aerobic.data.map(d => [d.param, d.val]),
                 [50, 50]
             ),
             new PageBreak()
@@ -380,287 +385,354 @@ export const generateProposalWord = async (data) => {
         // ==========================================
 
         sections.push(
-            createHeading("3. Process Impact Analysis"),
+            createHeading(theoryContent.title),
 
+            // 3.1 Bromide
             createHeading(theoryContent.bromide.title, 2),
-            createParagraph(theoryContent.bromide.text),
+            createParagraph(theoryContent.bromide.intro),
             createSimpleTable(
-                ["Compound", "Effect", "Notes"],
-                theoryContent.bromide.table.map(row => [row.compound, row.effect, row.notes]),
+                theoryContent.bromide.headers,
+                theoryContent.bromide.table.map(r => [r.compound, r.effect, r.notes]),
                 [30, 30, 40]
             ),
+            new Paragraph({ text: "", spacing: { before: 240 } }),
 
+            // 3.2 Heavy Metals
             createHeading(theoryContent.heavyMetals.title, 2),
             createSimpleTable(
-                ["Metal", "Role", "Toxic Limit", "Comments"],
-                theoryContent.heavyMetals.table.map(row => [row.metal, row.role, row.role, row.comments]), // Mapping 'role' to 'toxic limit' temporarily as simplified in prompt
-                [20, 30, 20, 30]
+                theoryContent.heavyMetals.headers,
+                theoryContent.heavyMetals.table.map(r => [r.metal, r.role, r.beneficial, r.toxic, r.comments]),
+                [20, 20, 20, 20, 20]
             ),
+            new Paragraph({ text: "", spacing: { before: 240 } }),
 
+            // 3.3 Higher VFA
             createHeading(theoryContent.vfa.title, 2),
             createParagraph(theoryContent.vfa.text),
+            ...theoryContent.vfa.bullets.map(b => createParagraph(`• ${b}`, { indent: { left: 360 } })),
             new PageBreak()
         );
 
         // ==========================================
-        // SECTION 4: PROCESS EQUIPMENT SPECIFICATIONS (MERGED)
+        // SECTION 4: PROCESS EQUIPMENT SPECIFICATIONS
         // ==========================================
 
         sections.push(createHeading("4. Process Equipment Specifications"));
 
-        // Helper to Create Equipment Section with Scope
+        // Helper
         const createEquipSection = (number, title, scope, details, tableHeaders, tableData) => {
             const scopeLabel = scope ? ` [Scope: ${scope}]` : "";
             sections.push(createHeading(`${number} ${title}${scopeLabel}`, 2));
-
             if (details) {
-                // details can be a string or array of strings
-                if (Array.isArray(details)) {
-                    details.forEach(d => sections.push(createParagraph(d)));
-                } else {
-                    sections.push(createParagraph(details));
-                }
+                if (Array.isArray(details)) details.forEach(d => sections.push(createParagraph(d)));
+                else sections.push(createParagraph(details));
             }
-
             if (tableData && tableData.length > 0) {
                 sections.push(createSimpleTable(tableHeaders, tableData, tableHeaders.map(() => 100 / tableHeaders.length)));
             }
         };
 
-        // 4.1 DAF [Client Scope]
-        createEquipSection("4.1", "Dissolved Air Flotation (DAF)", "Client / Existing", null,
+        // 4.1 DAF [Scope: EDI]
+        createEquipSection("4.1", "Dissolved Air Flotation (DAF)", "EDI", null,
             ["Parameter", "Specification"],
             [
-                ["DAF Unit", `250 m³/hr, Epoxy Coated MS (Qty: 1)`],
-                ["HP Pump", `64 m³/hr @ 10m, CI/SS304 (Qty: 2, 1W+1S)`],
-                ["Air Compressor", `12 CFM @ 6 kg/cm², SS304 (Qty: 2, 1W+1S)`]
-            ]
-        );
-
-        // 4.2 Chemical Dosing Systems [EDI Supply] - Combined
-        sections.push(createHeading("4.2 Chemical Dosing Systems [Scope: EDI Supply]", 2));
-
-        const renderDosingTable = (systemName, items) => {
-            sections.push(createHeading(systemName, 3));
-            const rows = items.map(item => [item.item, item.spec, item.qty]);
-            sections.push(createSimpleTable(["Item", "Specification", "Qty"], rows, [30, 50, 20]));
-        };
-
-        renderDosingTable("Urea Dosing System", [
-            { item: "Dosing Pump", spec: "110 LPH, PP", qty: "2 (1W+1S)" },
-            { item: "Dosing Tank", spec: "500 / 2500 Lit, PP/HDPE", qty: "1" },
-            { item: "Agitator", spec: "Turbine, SS316", qty: "1" }
-        ]);
-
-        renderDosingTable("Phosphoric Acid (H3PO4) Dosing System", [
-            { item: "Dosing Pump", spec: "25 LPH, PP", qty: "2 (1W+1S)" },
-            { item: "Dosing Tank", spec: "500 Lit, PP/HDPE", qty: "1" }
-        ]);
-
-        renderDosingTable("Caustic Dosing System", [
-            { item: "Dosing Pump", spec: "100 LPH, SS316", qty: "2 (1W+1S)" },
-            { item: "Dosing Tank", spec: "500 / 1000 Lit, MS", qty: "1" },
-            { item: "Agitator", spec: "Turbine, SS316", qty: "1" }
-        ]);
-
-        renderDosingTable("Micronutrients & HCl Dosing", [
-            { item: "Dosing Pump", spec: "10 LPH, PP", qty: "2 (1W+1S)" },
-            { item: "Dosing Tank", spec: "500 Lit", qty: "1" }
-        ]);
-
-
-        // 4.3 Screening System [EDI]
-        createEquipSection("4.3", "Screening System", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Type", `Fine Screen`],
-                ["MOC", `SS304`],
-                ["Quantity", `1 No.`]
-            ]
-        );
-
-        // 4.4 Pre-Acidification Tank [Client]
-        createEquipSection("4.4", "Pre-Acidification Tank", "Client / Existing", null,
-            ["Parameter", "Specification"],
-            [
-                ["Tank Capacity", `300 m³, RCC (Existing Equalization Tank)`],
-                ["Agitator", `Slow speed top mounted, SS316 (Make: Ceecons/Verito)`]
-            ]
-        );
-
-        // 4.5 Anaerobic Feed Pump [EDI]
-        createEquipSection("4.5", "Anaerobic Feed Pump", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", `225 m³/hr @ 3 kg/cm²`],
-                ["Type", `Centrifugal Semi-open, SS304`],
-                ["Make", "KSB / Johnson / EQT"],
-                ["Quantity", `2 Nos (1W+1S)`]
-            ]
-        );
-
-        // 4.6 Anaerobic Reactor System [Client/EDI]
-        createEquipSection("4.6", "Anaerobic Reactor System", "Client (Civil) / EDI (Internals)", null,
-            ["Parameter", "Specification"],
-            [
-                ["Tank Dimensions", "Dia 9m x 24m Ht"],
-                ["Capacity", "1527 m³"],
-                ["MOC", "MSEP (Site Fabrication)"],
+                ["Flow Rate", safeString(clientInfo.designFlow || "250 m3/hr")],
+                ["Make", "Krofta / DAFTech / Ishan / Kpack"],
+                ["Inlet / Outlet TSS", `${safeString(params.find(p => p.name === 'TSS')?.value || "4000")} / <300 mg/l`],
                 ["Quantity", "1 No."]
             ]
         );
 
-        // 4.7 Biomass Transfer Pump [EDI]
-        createEquipSection("4.7", "Biomass Transfer Pump", "EDI", null,
+        // 4.2 Chemical Dosing Systems - Detailed Format
+        sections.push(createHeading("4.2 Chemical Dosing Systems", 2));
+
+        const renderDosingDetailed = (systemName, calcData, pumpData, tankData, agitatorData) => {
+            // Header
+            sections.push(createHeading(systemName, 3)); // e.g. "Phosphoric Acid Dosing System"
+
+            // Calculations Table (if data provided)
+            if (calcData) {
+                sections.push(createParagraph("Calculations:", { textOptions: { bold: true, size: 22 } }));
+                const calcRows = Object.entries(calcData).map(([k, v]) => [k, v]);
+                sections.push(createSimpleTable(null, calcRows, [50, 50]));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+
+            // A) Dosing Pump Table
+            sections.push(createParagraph("A) Dosing Pump [Scope: EDI]", { textOptions: { bold: true, size: 22 } }));
+            sections.push(createSimpleTable(
+                null, // No Header row
+                [
+                    ["Capacity", pumpData.capacity, "Make", pumpData.make],
+                    ["Type", pumpData.type, "MOC", pumpData.moc],
+                    ["Quantity", pumpData.qty, "-", "-"]
+                ],
+                [25, 25, 25, 25]
+            ));
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+
+            // B) Dosing Tank Table
+            if (tankData) {
+                sections.push(createParagraph("B) Dosing Tank [Scope: EDI]", { textOptions: { bold: true, size: 22 } }));
+                sections.push(createSimpleTable(
+                    null,
+                    [
+                        ["Capacity", tankData.capacity, "Type", tankData.type],
+                        ["MOC", tankData.moc, "Make", tankData.make],
+                        ["Quantity", tankData.qty, "-", "-"]
+                    ],
+                    [25, 25, 25, 25]
+                ));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+
+            // C) Agitator Table
+            if (agitatorData) {
+                sections.push(createParagraph("C) Agitator [Scope: EDI]", { textOptions: { bold: true, size: 22 } }));
+                sections.push(createSimpleTable(
+                    null,
+                    [
+                        ["RPM", agitatorData.rpm || "80-90", "Make", agitatorData.make],
+                        ["Type", agitatorData.type, "MOC", agitatorData.moc],
+                        ["Quantity", agitatorData.qty, "-", "-"]
+                    ],
+                    [25, 25, 25, 25]
+                ));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+        };
+
+        // Urea
+        renderDosingDetailed("Urea Dosing System",
+            { "N Required": "Calculated Value", "Dosing Tank": "2500 Lit", "Dosing Pump": "110 LPH" },
+            { capacity: "110 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "PP", qty: "2 (1W+1S)" },
+            { capacity: "2500 Lit", type: "Vertical", moc: "HDPE", make: "Sintex/EQT", qty: "1" },
+            { rpm: "80-90", make: "Ceecons/Verito/EQT", type: "Turbine", moc: "SS316", qty: "1" }
+        );
+
+        // Phosphoric Acid
+        renderDosingDetailed("Phosphoric Acid Dosing System",
+            { "P Required": "Calculated Value", "Dosing Tank": "500 Lit", "Dosing Pump": "25 LPH" },
+            { capacity: "25 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "PP", qty: "2 (1W+1S)" },
+            { capacity: "500 Lit", type: "Vertical", moc: "HDPE", make: "Sintex/EQT", qty: "1" },
+            null // No agitator typically for acid
+        );
+
+        // Caustic
+        renderDosingDetailed("Caustic Dosing System",
+            null, // No calcs shown
+            { capacity: "100 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "SS316", qty: "2 (1W+1S)" },
+            { capacity: "1000 Lit", type: "Vertical", moc: "MS", make: "Site Fabrication", qty: "1" },
+            { rpm: "80-90", make: "Ceecons/Verito/EQT", type: "Turbine", moc: "SS316", qty: "1" }
+        );
+
+        // HCl
+        renderDosingDetailed("HCl Dosing System",
+            null,
+            { capacity: "10 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "PP", qty: "2 (1W+1S)" },
+            { capacity: "500 Lit", type: "Vertical", moc: "MSRL", make: "Site Fabrication", qty: "1" },
+            null
+        );
+
+        // Micronutrients
+        renderDosingDetailed("Micronutrients Dosing System",
+            null,
+            { capacity: "10 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "PP", qty: "2 (1W+1S)" },
+            { capacity: "500 Lit", type: "Vertical", moc: "HDPE", make: "Sintex/EQT", qty: "1" },
+            { rpm: "80-90", make: "Ceecons/Verito/EQT", type: "Turbine", moc: "SS316", qty: "1" }
+        );
+
+
+        // 4.3 Screening System [Scope: EDI]
+        createEquipSection("4.3", "Screening System", "EDI", null,
             ["Parameter", "Specification"],
             [
-                ["Capacity", "10 m³/hr @ 3 kg/cm²"],
-                ["Type", "Positive Displacement, Nitrile Stator"],
+                ["Type", "Fine Screen"],
+                ["Capacity", safeString(clientInfo.designFlow || "250 m3/hr")],
+                ["MOC", "SS304"],
+                ["Pore Size", "2mm"]
+            ]
+        );
+
+        // 4.4 Primary Clarification [Scope: Client] - NEW
+        createEquipSection("4.4", "Primary Clarification System", "Client", null,
+            ["Parameter", "Specification"],
+            [
+                ["Tank MOC", "RCC (Concrete)"],
+                ["Mechanism", "Central Driven, MSEP (Make: Indofab/EQT)"],
+                ["Sludge Pump", "Centrifugal, Make: KSB/Abirami/Johnson"]
+            ]
+        );
+
+        // 4.5 Cooling System [Scope: EDI] - NEW
+        createEquipSection("4.5", "Cooling System (PHE)", "EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Capacity", safeString(clientInfo.designFlow || "250 m3/hr")],
+                ["MOC", "SS304"],
+                ["Temp Out", "35°C"],
                 ["Quantity", "2 Nos (1W+1S)"]
             ]
         );
 
-        // 4.8 Biogas Handling System [Combined]
-        sections.push(createHeading("4.8 Biogas Handling System", 2));
-        createHeading("Biogas Holder [Scope: Client (Civil) / EDI (Mech)]", 3);
-        sections.push(createSimpleTable(
+        // 4.6 Pre-acidification Tank [Scope: Client]
+        createEquipSection("4.6", "Pre-acidification Tank", "Client", null,
             ["Parameter", "Specification"],
             [
-                ["Dome Dimensions", "Dia 4.5m x 3.5m Ht (Capacity: 56 m³)"],
-                ["Outer Tank (Civil)", "Dia 5.5m x 4.5m Ht, RCC"],
-                ["MOC (Dome)", "MSEP"]
-            ],
-            [50, 50]
-        ));
-        createHeading("Biogas Flare Stack [Scope: EDI]", 3);
-        sections.push(createSimpleTable(
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", "700 Nm³/hr"],
-                ["Height", "10 m"],
-                ["Type", "Open Flare"]
-            ],
-            [50, 50]
-        ));
-
-        // 4.9 Biomass Holding Tank [Client]
-        createEquipSection("4.9", "Biomass Holding Tank", "Client", null,
-            ["Parameter", "Specification"],
-            [
-                ["Dimensions", "10m x 5m x 4m"],
-                ["Capacity", "200 m³, RCC"]
+                ["Capacity", `${safeString(preAcid.capacity || "300 m3")}, RCC`],
+                ["Agitator", "Submersible / Top Mounted, SS316 (Make: Sulzer/Ceecons/EQT)"]
             ]
         );
 
-        // 4.10 Aeration Tank System [Client]
-        createEquipSection("4.10", "Aeration Tank System", "Client", null,
+        // 4.7 Anaerobic Feed Pump [Scope: EDI]
+        createEquipSection("4.7", "Anaerobic Feed Pump", "EDI", null,
             ["Parameter", "Specification"],
             [
-                ["Existing Tank", "1000 m³, RCC"],
-                ["Proposed Tank", "4298 m³ (27m x 20m x 4m)"],
-                ["Quantity", "2 Nos (Proposed)"]
-            ]
-        );
-
-        // 4.11 Aeration System Components [EDI]
-        createEquipSection("4.11", "Aeration System Components", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Aerators", "Gear Mounted, SS316"],
-                ["Power", "~30 kW x 10 Nos"],
-                ["Air Blowers", "Tri-lobe, CI, 2 Nos"]
-            ]
-        );
-
-        // 4.12 Secondary Clarifier System [Combined]
-        sections.push(createHeading("4.12 Secondary Clarifier System", 2));
-        createHeading("Clarifier Tanks [Scope: Client]", 3);
-        sections.push(createSimpleTable(
-            ["Parameter", "Specification"],
-            [
-                ["Existing Tank", "Dia 12m x 3.5m Ht (390 m³)"],
-                ["Proposed Tank", "Dia 17.6m x 3.0m Ht (732 m³)"]
-            ],
-            [50, 50]
-        ));
-        createHeading("Clarifier Mechanisms [Scope: EDI]", 3);
-        sections.push(createSimpleTable(
-            ["Parameter", "Specification"],
-            [
-                ["Type", "Central Driven, MSEP"],
-                ["Quantity", "2 Nos"],
-                ["Features", "Scum Collection System included"]
-            ],
-            [50, 50]
-        ));
-
-
-        // 4.13 Sludge Recirculation Pump [EDI]
-        createEquipSection("4.13", "Sludge Recirculation (RAS) Pump", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", "200 m³/hr @ 1 kg/cm²"],
-                ["Type", "Centrifugal, SS316"],
+                ["Capacity", safeString(anaerobicFeedPump.capacity || "225 m3/hr")],
+                ["Type", "Centrifugal Semi-open"],
+                ["MOC", "CI / SS304"],
+                ["Make", "KSB / Kirloskar / Johnson"],
                 ["Quantity", "2 Nos (1W+1S)"]
             ]
         );
 
-        // 4.14 Sludge Management System [EDI]
-        sections.push(createHeading("4.14 Sludge Management System [Scope: EDI]", 2));
-        createHeading("Sludge Dewatering (Screw Press) [Scope: EDI]", 3);
-        sections.push(createSimpleTable(
+        // 4.8 Anaerobic Reactor System
+        createEquipSection("4.8", "Anaerobic Reactor System", null, null,
             ["Parameter", "Specification"],
             [
-                ["Capacity", "500 kg dry solids/hr"],
-                ["MOC", "SS316"],
-                ["Make", "SNP / Chemiescience / EQT"]
-            ],
-            [50, 50]
-        ));
-        createHeading("Poly Dosing System", 3);
-        sections.push(createSimpleTable(
-            ["Parameter", "Specification"],
-            [
-                ["Poly Prep/Dosing Tanks", "10 m³ each, RCC (Client Scope)"],
-                ["Dosing Pump", "3 m³/hr, Screw type, 2 Nos (1W+1S) (EDI Scope)"],
-                ["Feed Pump", "22 m³/hr, Screw type, 2 Nos (1W+1S) (EDI Scope)"]
-            ],
-            [50, 50]
-        ));
-
-        // 4.15 Treated Water Handling [Client/EDI]
-        createEquipSection("4.15", "Treated Water Handling", "Client/EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Treated Water Tank", "300 m³, RCC [Scope: Client]"],
-                ["Transfer Pump", "250 m³/hr, SS316, 2 Nos [Scope: EDI]"]
+                ["Dimensions", safeString(anaerobicTank.dimensions || "Dia 9m x 24m Ht")],
+                ["Capacity", safeString(anaerobicTank.capacity || "1527 m3")],
+                ["Type", "Vertical, MSEP (Site Fabrication)"],
+                ["Stand Pipe", "MSEP"]
             ]
         );
 
-        // 4.16 Other Major Equipment [EDI]
-        createEquipSection("4.16", "Other Major Equipment", "EDI", null,
-            ["Equipment", "Specification"],
+        // 4.9 Biomass Transfer Pump [Scope: EDI]
+        createEquipSection("4.9", "Biomass Transfer Pump", "EDI", null,
+            ["Parameter", "Specification"],
             [
-                ["Tertiary Filters", "MGF + ACF, MS Epoxy"],
-                ["Instruments", "Flow, Level, pH, Temp transmitters (E&H preferred)"]
+                ["Capacity", safeString(biomassPump.capacity || "10 m3/hr")],
+                ["Type", "Positive Displacement (Screw), Nitrile Stator"],
+                ["Make", "Netzsch / Hydroprokav / EQT"]
             ]
         );
 
-        // 4.17 Piping & Valves [EDI/Client]
-        sections.push(createHeading("4.17 Piping & Valves Specifications", 2));
-        sections.push(createSimpleTable(
-            ["Service Line", "Material (MOC)", "Type / Class"],
+        // 4.10 Biogas Handling System
+        createEquipSection("4.10", "Biogas Handling System", null, null,
+            ["Parameter", "Specification"],
             [
-                ["Raw Effluent", "UPVC / HDPE", "Sch 80 / PE100"],
-                ["Anaerobic Feed", "SS 304 / HDPE", "Sch 10 / PE100"],
-                ["Biogas Line", "SS 304 / HDPE", "Sch 10 / PN6"],
-                ["Air Line (Blower to Tank)", "MS 'B' Class / SS 304", "Heavy Duty"],
-                ["Air Grid (Inside Tank)", "UPVC / ABS", "High Pressure"],
-                ["Sludge Line", "UPVC / HDPE", "Sch 80"],
-                ["Chemical Dosing", "UPVC / Braided Hose", "Chemical Resistant"],
-                ["Treated Water", "UPVC", "Sch 40"]
+                ["Biogas Holder", "Floating Dome type, MSEP Dome / RCC Tank"],
+                ["Flare Stack", `${safeString(biogasFlare.capacity || "700")} Nm3/hr, 10m Height, Open Flare`],
+                ["Accessories", "Flame Arrestor, Pilot/Main SOV, Moisture Separator"]
+            ]
+        );
+
+        // 4.11 Biomass Holding Tank [Scope: EDI]
+        createEquipSection("4.11", "Biomass Holding Tank", "EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Capacity", safeString(biomassHoldingTank.capacity || "200 m3")],
+                ["MOC", "MSEP"],
+                ["Shape", "Rectangular"]
+            ]
+        );
+
+        // 4.12 Start-up Granular Biomass
+        sections.push(createHeading("4.12 Start-up Granular Biomass", 2));
+        const vss = Math.round((Number(anaerobicTank.capacity?.split(' ')[0] || 1500) * 0.4)); // Estimation
+        sections.push(createParagraph(`Requirement: ${vss} m3 with 60 kg VSS (VSS/TSS ratio > 60%).`));
+
+        // 4.13 Aeration Tank System [Scope: Client]
+        createEquipSection("4.13", "Aeration Tank System", "Client", null,
+            ["Parameter", "Specification"],
+            [
+                ["Type", "Extended Aeration"],
+                ["MOC", "RCC"],
+                ["Capacity", safeString(aerationTank.capacity || "4298 m3")]
+            ]
+        );
+
+        // 4.14 Aeration System Components
+        createEquipSection("4.14", "Aeration System Components", null, null,
+            ["Parameter", "Specification"],
+            [
+                ["Aerators", "Surface Aerators, Make: Indofab"],
+                ["Blowers", "Tri-lobe, Make: KPT"]
+            ]
+        );
+
+        // 4.15 Secondary Clarifier System
+        createEquipSection("4.15", "Secondary Clarifier System", null, null,
+            ["Parameter", "Specification"],
+            [
+                ["Tank", `${safeString(secondaryClarifierTank.dimensions || "Dia 17.6m")}, RCC [Scope: Client]`],
+                ["Mechanism", "Central Driven, MSEP [Scope: EDI]"]
+            ]
+        );
+
+        // 4.16 Sludge Recirculation Pump [Scope: EDI]
+        createEquipSection("4.16", "Sludge Recirculation Pump", "EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Capacity", safeString(sludgeRecircPump.capacity || "200 m3/hr")],
+                ["Type", "Centrifugal Semi-open, CI"],
+                ["Quantity", "2 Nos (1W+1S)"]
+            ]
+        );
+
+        // 4.17 Sludge Management System [Scope: EDI]
+        createEquipSection("4.17", "Sludge Management System", "EDI", null,
+            ["Parameter", "Specification"],
+            [
+                ["Dewatering", "Screw Press / Centrifuge"],
+                ["Poly Dosing", "Preparation & Dosing Tanks with Pumps"]
+            ]
+        );
+
+        // 4.18 Treated Water Handling
+        createEquipSection("4.18", "Treated Water Handling", null, null,
+            ["Parameter", "Specification"],
+            [
+                ["Tank", `${safeString(treatedWaterTank.capacity || "300 m3")}, RCC [Scope: Client]`],
+                ["Transfer Pump", `Centrifugal, ${safeString(treatedWaterPump.capacity || "250 m3/hr")}, CI [Scope: EDI]`]
+            ]
+        );
+
+        // 4.19 Other Major Equipment
+        createEquipSection("4.19", "Other Major Equipment", null, null,
+            ["Equipment", "Specification", "Scope"],
+            [
+                ["Tertiary Filters", "MGF + ACF, MS Epoxy", "EDI"],
+                ["Instruments", "Flow, Level, pH, Temp transmitters", "EDI"]
             ],
-            [40, 30, 30]
+            ["Equipment", "Specification", "Scope"],
+            [40, 40, 20]
+        );
+
+        // 4.21 Pipings (Skip 4.20)
+        sections.push(createHeading("4.21 Pipings", 2));
+        sections.push(createSimpleTable(
+            ["Service Line", "Material (MOC)"],
+            [
+                ["Conditioning to ELAR", "HDPE"],
+                ["Biogas Line", "SS304"],
+                ["ELAR to Aeration", "HDPE"],
+                ["Chemical Dosing", "PP / PVC / SS304"],
+                ["Service Water", "MS"]
+            ],
+            [50, 50]
+        ));
+
+        // 4.22 Valves
+        sections.push(createHeading("4.22 Valves", 2));
+        sections.push(createSimpleTable(
+            ["Valve Type", "MOC"],
+            [
+                ["Ball Valve", "PP or CI/SS316"],
+                ["Butterfly Valve", "CI/SS316"],
+                ["Knife Edge Gate Valve", "CI/SS316"]
+            ],
+            [50, 50]
         ));
 
         sections.push(new PageBreak());
@@ -669,18 +741,18 @@ export const generateProposalWord = async (data) => {
         // SECTION 5: EXCLUSIONS
         // ==========================================
 
-        sections.push(
-            createHeading("5. Exclusions from Scope of Supply"),
-            createParagraph("The following items are excluded from our scope of supply and shall be arranged by the client:"),
+        sections.push(createHeading("5. Exclusions from Scope of Supply & Services"));
+        sections.push(createParagraph("Unless specifically mentioned in the scope of supply, the following items and activities are excluded from this proposal and shall be in the Client's scope:"));
 
-            createParagraph("• Civil Works: All foundations, RCC tanks, buildings, roads, and drains.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Power Supply: Incoming power, cabling to panel, transformers.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Water & Utilities: Service water and compressed air supply.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Manpower: Operating and maintenance staff.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Chemicals: Lab chemicals and bulk chemicals.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Statutory Approvals: Pollution Control Board clearances.", { spacingBefore: 60, indent: { left: 720 } }),
-            createParagraph("• Mill Constraints: Oxidizing biocides prohibited; Fresh water intake restricted to 800 m³/day.", { spacingBefore: 60, indent: { left: 720 } })
-        );
+        exclusionsList.forEach((exc, i) => {
+            sections.push(createParagraph(`${i + 1}. ${exc.title}: ${exc.desc}`, { spacingBefore: 60, indent: { left: 360 } }));
+        });
+
+        if (exclusionsConclusion) {
+            sections.push(new Paragraph({ text: "", spacing: { before: 240 } }));
+            sections.push(createParagraph(exclusionsConclusion, { alignment: AlignmentType.JUSTIFIED }));
+        }
+
 
         // --- Final Document Assembly ---
         const doc = new Document({
@@ -693,7 +765,7 @@ export const generateProposalWord = async (data) => {
         });
 
         const blob = await Packer.toBlob(doc);
-        saveAs(blob, `Technical_Proposal_${safeString(clientInfo.clientName).replace(/[^a-z0-9]/gi, '_')}.docx`);
+        saveAs(blob, `Technical_Proposal_${safeString(clientInfo.clientName || "Draft")}.docx`);
 
     } catch (error) {
         console.error("Error generating Word document:", error);
