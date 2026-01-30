@@ -16,8 +16,6 @@ import {
     ImageRun,
     VerticalAlign,
     PageNumber,
-    SimpleField,
-    TableOfContents,
     HeadingLevel
 } from "docx";
 import { saveAs } from "file-saver";
@@ -214,7 +212,7 @@ export const generateProposalWord = async (data) => {
                                                     transformation: { width: 150, height: 50 },
                                                 })
                                             ] : [
-                                                createParagraph("EDI Enviro and Engineering", { textOptions: { bold: true, size: 24, color: "006400" } })
+                                                createText("EDI Enviro and Engineering", { bold: true, size: 24, color: "006400" })
                                             ]
                                         })
                                     ],
@@ -245,9 +243,13 @@ export const generateProposalWord = async (data) => {
                 new Paragraph({
                     children: [
                         createText("EDI Enviro & Engineering | Page ", { size: 14, color: "888888" }),
-                        new SimpleField("PAGE"),
+                        new TextRun({
+                            children: [PageNumber.CURRENT]
+                        }),
                         createText(" of ", { size: 14, color: "888888" }),
-                        new SimpleField("NUMPAGES")
+                        new TextRun({
+                            children: [PageNumber.TOTAL_PAGES]
+                        })
                     ],
                     alignment: AlignmentType.CENTER,
                     border: { top: { color: "CCCCCC", space: 1, style: BorderStyle.SINGLE, size: 6 } }
@@ -268,7 +270,6 @@ export const generateProposalWord = async (data) => {
             new Paragraph({ text: "", spacing: { before: 1500 } }),
             createParagraph(`Client: ${safeString(clientInfo.clientName)}`, { textOptions: { bold: true, size: 28 }, alignment: AlignmentType.CENTER }),
             createParagraph(`Reference: ${safeString(clientInfo.referenceNumber)}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
-            createParagraph(`Date: ${new Date().toLocaleDateString()}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
             createParagraph(`Date: ${new Date().toLocaleDateString()}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
             new Paragraph({
                 children: [new PageBreak()]

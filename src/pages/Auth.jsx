@@ -2,10 +2,72 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, ArrowLeft, Loader2, Upload, QrCode, ChevronRight, CheckCircle, ShieldCheck, Home } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Loader2, Upload, QrCode, ChevronRight, CheckCircle, ShieldCheck, Home, Copy, Check, Building2, CreditCard, Calendar, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { getRegistrationFee } from '@/lib/settingsService';
+
+// Subscription Plans Data
+const SUBSCRIPTION_PLANS = [
+    {
+        id: 'monthly',
+        name: 'Monthly',
+        price: 125000,
+        duration: '1 Month',
+        features: ['Full Platform Access', 'Email Support', 'Monthly Reports'],
+        icon: Calendar,
+        color: 'from-blue-500 to-cyan-500',
+        borderColor: 'border-blue-500/50',
+        bgColor: 'bg-blue-500/10'
+    },
+    {
+        id: 'quarterly',
+        name: 'Quarterly',
+        price: 300000,
+        duration: '3 Months',
+        features: ['Priority Support', 'Advanced Analytics', 'API Access'],
+        icon: Building2,
+        color: 'from-purple-500 to-pink-500',
+        borderColor: 'border-purple-500/50',
+        bgColor: 'bg-purple-500/10',
+        savings: '20% Savings'
+    },
+    {
+        id: 'half_yearly',
+        name: 'Half Yearly',
+        price: 500000,
+        duration: '6 Months',
+        features: ['Dedicated Manager', 'Custom Reports', 'Training Sessions'],
+        icon: CreditCard,
+        color: 'from-amber-500 to-orange-500',
+        borderColor: 'border-amber-500/50',
+        bgColor: 'bg-amber-500/10',
+        savings: '33% Savings'
+    },
+    {
+        id: 'yearly',
+        name: 'Yearly',
+        price: 900000,
+        duration: '1 Year',
+        features: ['White Glove Service', 'Unlimited Access', 'Priority Everything'],
+        icon: Crown,
+        color: 'from-emerald-500 to-teal-500',
+        borderColor: 'border-emerald-500/50',
+        bgColor: 'bg-emerald-500/10',
+        badge: 'Best Value',
+        savings: '40% Savings'
+    }
+];
+
+// Bank Account Details
+const BANK_DETAILS = {
+    accountName: 'EDI ENVIRO AND ENGINEERING',
+    accountNumber: '272539751871025',
+    branch: 'KALLAKURICHI',
+    accountType: 'Current Account',
+    ifscCode: 'TMBL0000272',
+    micrCode: '606060102'
+};
 
 const Auth = () => {
     const navigate = useNavigate();
@@ -23,11 +85,13 @@ const Auth = () => {
         return 'welcome';
     };
 
-    const [mode, setMode] = useState(getInitialMode()); // 'welcome' | 'signup-step-1' | 'billing-summary' | 'signup-step-2' | 'signup-success' | 'admin-login' | 'client-login'
+    const [mode, setMode] = useState(getInitialMode()); // 'welcome' | 'signup-step-1' | 'plan-selection' | 'billing-summary' | 'signup-step-2' | 'signup-success' | 'admin-login' | 'client-login'
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [qrCodeUrl, setQrCodeUrl] = useState('');
     const [fee, setFee] = useState('69');
+    const [selectedPlan, setSelectedPlan] = useState(SUBSCRIPTION_PLANS[3]); // Default to Yearly
+    const [copiedField, setCopiedField] = useState(null);
 
     useEffect(() => {
         getRegistrationFee().then(setFee);
@@ -118,7 +182,19 @@ const Auth = () => {
             toast({ title: "Weak Password", description: "Must be at least 6 characters.", variant: "destructive" });
             return;
         }
-        setMode('billing-summary');
+        setMode('plan-selection');
+    };
+
+    // Copy to clipboard function
+    const copyToClipboard = async (text, field) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedField(field);
+            toast({ title: "Copied!", description: `${field} copied to clipboard.` });
+            setTimeout(() => setCopiedField(null), 2000);
+        } catch (err) {
+            toast({ title: "Copy Failed", description: "Please copy manually.", variant: "destructive" });
+        }
     };
 
     const handleFinalSignup = async (e) => {
@@ -195,7 +271,7 @@ const Auth = () => {
             </button>
 
             {/* Main Container */}
-            <div className={`relative z-10 w-full px-6 transition-all duration-500 ease-in-out ${mode === 'billing-summary' ? 'max-w-[1400px]' : 'max-w-md'}`}>
+            <div className={`relative z-10 w-full px-6 transition-all duration-500 ease-in-out ${(mode === 'billing-summary' || mode === 'plan-selection' || mode === 'signup-step-2') ? 'max-w-[1600px]' : 'max-w-md'}`}>
                 <AnimatePresence mode="wait">
 
                     {/* MODE: WELCOME */}
@@ -350,7 +426,7 @@ const Auth = () => {
                                 <button onClick={() => setMode('welcome')} className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
                                     <ArrowLeft className="w-5 h-5" />
                                 </button>
-                                <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-3 py-1 rounded-full border border-emerald-500/20 tracking-wider">STEP 1 / 2</span>
+                                <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-3 py-1 rounded-full border border-emerald-500/20 tracking-wider">STEP 1 / 4</span>
                             </div>
 
                             <div className="mb-8">
@@ -374,13 +450,248 @@ const Auth = () => {
                                     />
                                 </div>
                                 <Button className="w-full bg-white text-black hover:bg-slate-200 py-6 text-base font-bold mt-6 shadow-lg shadow-white/10 transition-transform active:scale-[0.98]">
-                                    Proceed to Verification <ChevronRight className="w-4 h-4 ml-2" />
+                                    Select Your Plan <ChevronRight className="w-4 h-4 ml-2" />
                                 </Button>
                             </form>
                         </motion.div>
                     )}
 
-                    {/* MODE: BILLING SUMMARY (New Step 1.5) */}
+                    {/* MODE: PLAN SELECTION (Step 2) */}
+                    {mode === 'plan-selection' && (
+                        <motion.div
+                            key="plan-selection"
+                            variants={backdropVariants}
+                            initial="hidden" animate="visible" exit="exit"
+                            className="w-full"
+                        >
+                            {/* Header Section */}
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-10 gap-6">
+                                <div className="flex items-center gap-4">
+                                    <button onClick={() => setMode('signup-step-1')} className="text-slate-500 hover:text-white transition-colors p-3 hover:bg-white/10 rounded-xl border border-white/10">
+                                        <ArrowLeft className="w-5 h-5" />
+                                    </button>
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <h2 className="text-3xl lg:text-4xl font-black text-white tracking-tight">Choose Your Plan</h2>
+                                            <span className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 text-[10px] font-bold px-3 py-1.5 rounded-full border border-cyan-500/30 tracking-wider">STEP 2 / 4</span>
+                                        </div>
+                                        <p className="text-slate-400 text-base">Select the subscription that fits your business scale and goals.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Pricing Plans - Full Width 4-Column Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8 mb-12 pt-4">
+                                {SUBSCRIPTION_PLANS.map((plan, index) => (
+                                    <motion.div
+                                        key={plan.id}
+                                        initial={{ opacity: 0, y: 30 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1, duration: 0.4 }}
+                                        whileHover={{ scale: 1.03, y: -8, transition: { duration: 0.25 } }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setSelectedPlan(plan)}
+                                        className={`relative rounded-3xl cursor-pointer transition-all duration-500 flex flex-col group ${selectedPlan.id === plan.id
+                                            ? 'ring-2 ring-offset-2 ring-offset-slate-900'
+                                            : 'hover:shadow-2xl'
+                                            }`}
+                                        style={{
+                                            background: selectedPlan.id === plan.id
+                                                ? `linear-gradient(135deg, ${plan.color.includes('blue') ? 'rgba(59,130,246,0.25)' : plan.color.includes('purple') ? 'rgba(168,85,247,0.25)' : plan.color.includes('amber') ? 'rgba(245,158,11,0.25)' : 'rgba(16,185,129,0.25)'}, rgba(0,0,0,0.4))`
+                                                : 'rgba(255,255,255,0.03)',
+                                            borderWidth: '1px',
+                                            borderStyle: 'solid',
+                                            borderColor: selectedPlan.id === plan.id
+                                                ? (plan.color.includes('blue') ? 'rgba(59,130,246,0.5)' : plan.color.includes('purple') ? 'rgba(168,85,247,0.5)' : plan.color.includes('amber') ? 'rgba(245,158,11,0.5)' : 'rgba(16,185,129,0.5)')
+                                                : 'rgba(255,255,255,0.08)',
+                                            boxShadow: selectedPlan.id === plan.id
+                                                ? `0 25px 60px -15px ${plan.color.includes('blue') ? 'rgba(59,130,246,0.35)' : plan.color.includes('purple') ? 'rgba(168,85,247,0.35)' : plan.color.includes('amber') ? 'rgba(245,158,11,0.35)' : 'rgba(16,185,129,0.35)'}`
+                                                : 'none'
+                                        }}
+                                    >
+                                        {/* Best Value Badge */}
+                                        {plan.badge && (
+                                            <div className="absolute top-0 left-0 right-0 flex justify-center z-20 -translate-y-1/2">
+                                                <motion.span
+                                                    initial={{ scale: 0 }}
+                                                    animate={{ scale: 1 }}
+                                                    transition={{ delay: 0.3, type: 'spring' }}
+                                                    className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-black text-[11px] font-black px-5 py-1.5 rounded-full shadow-xl shadow-amber-500/30 tracking-wide uppercase flex items-center gap-1.5"
+                                                >
+                                                    <Crown className="w-3.5 h-3.5" />
+                                                    {plan.badge}
+                                                </motion.span>
+                                            </div>
+                                        )}
+
+                                        {/* Card Content */}
+                                        <div className="p-7 lg:p-8 flex flex-col h-full pt-8">
+                                            {/* Top Row - Icon & Selection */}
+                                            <div className="flex items-start justify-between mb-6">
+                                                <div className={`p-4 rounded-2xl transition-all duration-300 ${selectedPlan.id === plan.id ? 'bg-white/20 shadow-lg' : plan.bgColor + ' group-hover:bg-white/10'}`}>
+                                                    <plan.icon className={`w-7 h-7 lg:w-8 lg:h-8 transition-colors duration-300 ${selectedPlan.id === plan.id ? 'text-white' : 'text-white/70 group-hover:text-white'}`} />
+                                                </div>
+                                                {selectedPlan.id === plan.id ? (
+                                                    <motion.div
+                                                        initial={{ scale: 0, rotate: -180 }}
+                                                        animate={{ scale: 1, rotate: 0 }}
+                                                        transition={{ type: 'spring', stiffness: 300 }}
+                                                        className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/40"
+                                                    >
+                                                        <Check className="w-5 h-5 text-white" strokeWidth={3} />
+                                                    </motion.div>
+                                                ) : (
+                                                    <div className="w-8 h-8 rounded-full border-2 border-white/10 group-hover:border-white/30 transition-colors" />
+                                                )}
+                                            </div>
+
+                                            {/* Plan Name & Duration */}
+                                            <h4 className={`font-black text-2xl lg:text-3xl mb-1 transition-colors duration-300 ${selectedPlan.id === plan.id ? 'text-white' : 'text-white/90 group-hover:text-white'}`}>
+                                                {plan.name}
+                                            </h4>
+                                            <p className={`text-sm mb-6 transition-colors duration-300 ${selectedPlan.id === plan.id ? 'text-white/70' : 'text-slate-400'}`}>
+                                                {plan.duration} subscription
+                                            </p>
+
+                                            {/* Price Section */}
+                                            <div className="mb-6">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-lg text-slate-400 font-medium">₹</span>
+                                                    <span className={`text-4xl lg:text-5xl font-black tracking-tight transition-colors duration-300 ${selectedPlan.id === plan.id ? 'text-white' : 'text-white/90'}`}>
+                                                        {(plan.price / 1000).toFixed(0)}
+                                                    </span>
+                                                    <span className="text-xl text-slate-400 font-semibold">,000</span>
+                                                </div>
+                                                {plan.savings && (
+                                                    <motion.span
+                                                        initial={{ opacity: 0, x: -10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: 0.2 }}
+                                                        className={`inline-flex items-center mt-3 text-xs font-bold px-3 py-1 rounded-lg ${selectedPlan.id === plan.id ? 'bg-white/20 text-white' : 'bg-emerald-500/20 text-emerald-400'
+                                                            }`}
+                                                    >
+                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                        {plan.savings}
+                                                    </motion.span>
+                                                )}
+                                            </div>
+
+                                            {/* Divider */}
+                                            <div className={`h-px mb-6 transition-colors ${selectedPlan.id === plan.id ? 'bg-white/20' : 'bg-white/5'}`} />
+
+                                            {/* Features */}
+                                            <div className="space-y-3 flex-grow">
+                                                {plan.features.map((feature, idx) => (
+                                                    <div key={idx} className={`flex items-start text-sm leading-relaxed transition-colors duration-300 ${selectedPlan.id === plan.id ? 'text-white/90' : 'text-slate-400 group-hover:text-slate-300'}`}>
+                                                        <CheckCircle className={`w-4 h-4 mr-3 flex-shrink-0 mt-0.5 ${selectedPlan.id === plan.id ? 'text-emerald-300' : 'text-slate-600 group-hover:text-emerald-400/60'}`} />
+                                                        <span>{feature}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Select Button */}
+                                            <button className={`mt-8 w-full py-4 rounded-xl font-bold text-sm transition-all duration-300 ${selectedPlan.id === plan.id
+                                                ? 'bg-white text-black shadow-xl'
+                                                : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20'
+                                                }`}>
+                                                {selectedPlan.id === plan.id ? '✓ Selected' : 'Select Plan'}
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            {/* Bank Account Details - Full Width Premium Card */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                                className="bg-gradient-to-br from-slate-900/90 to-slate-800/50 backdrop-blur-xl border border-white/10 rounded-3xl p-8 lg:p-10 mb-8 overflow-hidden relative"
+                            >
+                                {/* Decorative Elements */}
+                                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
+                                <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none translate-y-1/2 -translate-x-1/2" />
+
+                                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8 relative z-10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-4 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-2xl">
+                                            <Building2 className="w-7 h-7 text-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-white text-xl lg:text-2xl">Bank Transfer Details</h3>
+                                            <p className="text-slate-400 text-sm mt-1">Transfer the amount to proceed with registration</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {['NEFT', 'RTGS', 'IMPS'].map((method) => (
+                                            <span key={method} className="bg-slate-800/80 px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-slate-300 border border-slate-700">{method}</span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 lg:gap-6 relative z-10">
+                                    {[
+                                        { label: 'Account Name', value: BANK_DETAILS.accountName, field: 'accountName', span: 'lg:col-span-2' },
+                                        { label: 'Account Number', value: BANK_DETAILS.accountNumber, field: 'accountNumber', span: 'lg:col-span-2' },
+                                        { label: 'IFSC Code', value: BANK_DETAILS.ifscCode, field: 'ifscCode', span: 'lg:col-span-2' },
+                                        { label: 'Branch', value: BANK_DETAILS.branch, field: 'branch', span: 'lg:col-span-2' },
+                                        { label: 'Account Type', value: BANK_DETAILS.accountType, field: 'accountType', span: 'lg:col-span-2' },
+                                        { label: 'MICR Code', value: BANK_DETAILS.micrCode, field: 'micrCode', span: 'lg:col-span-2' }
+                                    ].map((item) => (
+                                        <div key={item.field} className={`bg-black/30 border border-white/5 rounded-2xl p-5 group hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all duration-300 ${item.span}`}>
+                                            <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-2 font-bold">{item.label}</p>
+                                            <div className="flex items-center justify-between">
+                                                <span className={`text-white font-mono text-base lg:text-lg font-semibold truncate mr-3 ${item.field === 'accountNumber' ? 'tracking-wider' : ''}`}>{item.value}</span>
+                                                <button
+                                                    onClick={() => copyToClipboard(item.value, item.label)}
+                                                    className="p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/20 transition-all duration-300 flex-shrink-0 active:scale-90 border border-transparent hover:border-emerald-500/30"
+                                                    title="Copy to clipboard"
+                                                >
+                                                    {copiedField === item.label ? (
+                                                        <Check className="w-4 h-4 text-emerald-400" />
+                                                    ) : (
+                                                        <Copy className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+
+                            {/* Continue Button - Fixed Footer */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                className="mt-4"
+                            >
+                                <div className="bg-gradient-to-r from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+                                    <div className="flex items-center gap-5 w-full md:w-auto">
+                                        <div className={`p-4 rounded-2xl bg-gradient-to-br ${selectedPlan.color} shadow-lg`}>
+                                            <selectedPlan.icon className="w-7 h-7 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Selected Plan</p>
+                                            <div className="flex items-baseline gap-3">
+                                                <p className="text-white font-black text-2xl">{selectedPlan.name}</p>
+                                                <span className="text-emerald-400 font-mono font-bold text-xl">₹{selectedPlan.price.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        onClick={() => setMode('billing-summary')}
+                                        className="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white py-6 px-12 text-lg font-bold shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:shadow-emerald-500/50 hover:scale-105 rounded-xl border border-white/10"
+                                    >
+                                        Continue to Billing <ChevronRight className="w-5 h-5 ml-2" />
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+
+                    {/* MODE: BILLING SUMMARY (Step 3) */}
                     {mode === 'billing-summary' && (
                         <motion.div
                             key="billing"
@@ -389,10 +700,10 @@ const Auth = () => {
                             className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl relative w-full"
                         >
                             <div className="flex items-center justify-between mb-8">
-                                <button onClick={() => setMode('signup-step-1')} className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
+                                <button onClick={() => setMode('plan-selection')} className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
                                     <ArrowLeft className="w-5 h-5" />
                                 </button>
-                                <span className="bg-purple-500/10 text-purple-400 text-[10px] font-bold px-3 py-1 rounded-full border border-purple-500/20 tracking-wider">STEP 2 / 3</span>
+                                <span className="bg-purple-500/10 text-purple-400 text-[10px] font-bold px-3 py-1 rounded-full border border-purple-500/20 tracking-wider">STEP 3 / 4</span>
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -521,21 +832,25 @@ const Auth = () => {
 
                                         <div className="space-y-4 mb-8 relative z-10">
                                             <div className="flex justify-between items-center text-sm">
-                                                <span className="font-medium text-slate-600">Enterprise Plan</span>
-                                                <span className="font-bold bg-slate-100 px-2 py-1 rounded text-slate-800">Standard</span>
+                                                <span className="font-medium text-slate-600">Selected Plan</span>
+                                                <span className="font-bold bg-gradient-to-r from-emerald-100 to-teal-100 px-3 py-1 rounded-lg text-emerald-800">{selectedPlan.name}</span>
                                             </div>
                                             <div className="flex justify-between items-center text-sm">
-                                                <span className="text-slate-500">Registration Fee</span>
-                                                <span className="font-bold font-mono text-base">₹{fee}.00</span>
+                                                <span className="text-slate-500">Duration</span>
+                                                <span className="font-medium text-slate-700">{selectedPlan.duration}</span>
                                             </div>
                                             <div className="flex justify-between items-center text-sm">
-                                                <span className="text-slate-500">Service Tax</span>
-                                                <span className="text-slate-400 italic">--</span>
+                                                <span className="text-slate-500">Subscription Fee</span>
+                                                <span className="font-bold font-mono text-base">₹{selectedPlan.price.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-slate-500">GST (18%)</span>
+                                                <span className="text-slate-400 italic">Included</span>
                                             </div>
                                             <div className="h-px bg-slate-200 my-2" />
                                             <div className="flex justify-between items-center">
                                                 <span className="font-bold text-xl">Total</span>
-                                                <span className="font-extrabold text-3xl font-mono text-purple-600">₹{fee}.00</span>
+                                                <span className="font-extrabold text-3xl font-mono text-purple-600">₹{selectedPlan.price.toLocaleString()}</span>
                                             </div>
                                         </div>
 
@@ -568,56 +883,123 @@ const Auth = () => {
                                 key="step2"
                                 variants={backdropVariants}
                                 initial="hidden" animate="visible" exit="exit"
-                                className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl relative"
+                                className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-10 shadow-2xl relative w-full max-w-5xl"
                             >
-                                <div className="flex items-center justify-between mb-6">
-                                    <button onClick={() => setMode('billing-summary')} className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
+                                <div className="flex items-center justify-between mb-8">
+                                    <button onClick={() => setMode('billing-summary')} className="text-slate-500 hover:text-white transition-colors p-3 hover:bg-white/10 rounded-xl border border-white/10">
                                         <ArrowLeft className="w-5 h-5" />
                                     </button>
-                                    <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-3 py-1 rounded-full border border-emerald-500/20 tracking-wider">STEP 3 / 3</span>
+                                    <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-4 py-1.5 rounded-full border border-emerald-500/20 tracking-wider">STEP 4 / 4</span>
                                 </div>
 
-                                <div className="text-center mb-8">
-                                    <h2 className="text-2xl font-bold text-white mb-2">Final Verification</h2>
-                                    <p className="text-slate-400 text-sm">Scan QR & Upload Proof.</p>
+                                <div className="text-center lg:text-left mb-8">
+                                    <h2 className="text-3xl lg:text-4xl font-black text-white mb-2 tracking-tight">Complete Your Payment</h2>
+                                    <p className="text-slate-400 text-base">Scan the QR code and upload your payment proof to finish registration.</p>
                                 </div>
 
-                                <div className="bg-white p-4 rounded-3xl w-56 h-56 mx-auto mb-8 flex items-center justify-center shadow-2xl shadow-emerald-900/20 relative">
-                                    <div className="absolute inset-0 border-4 border-white/20 rounded-3xl pointer-events-none" />
-                                    {qrCodeUrl ? (
-                                        <img src={qrCodeUrl} alt="Payment QR" className="w-full h-full object-contain mix-blend-multiply" />
-                                    ) : (
-                                        <Loader2 className="animate-spin text-slate-400 w-10 h-10" />
-                                    )}
-                                </div>
+                                {/* Side-by-side Layout */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
 
-                                <form onSubmit={handleFinalSignup} className="space-y-5">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-emerald-500/80 uppercase tracking-widest ml-1">Transaction Ref / UTR</label>
-                                        <input name="transactionId" placeholder="e.g. UPI-1234567890" value={data.transactionId} onChange={handleChange} required
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-emerald-400 font-mono tracking-wide focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-slate-700"
-                                        />
-                                    </div>
+                                    {/* Left Side: Large QR Code */}
+                                    <div className="flex flex-col items-center justify-center">
+                                        <div className="bg-white p-6 rounded-3xl w-full max-w-[320px] aspect-square flex items-center justify-center shadow-2xl shadow-emerald-900/30 relative overflow-hidden">
+                                            {/* Decorative corners */}
+                                            <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-emerald-500 rounded-tl-3xl" />
+                                            <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-emerald-500 rounded-tr-3xl" />
+                                            <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-emerald-500 rounded-bl-3xl" />
+                                            <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-emerald-500 rounded-br-3xl" />
 
-                                    <div className="relative group">
-                                        <input type="file" id="file_upload" className="hidden" onChange={handleFileChange} accept="image/*" />
-                                        <label htmlFor="file_upload" className="flex flex-col items-center justify-center w-full px-4 py-6 border-2 border-dashed border-white/10 hover:border-emerald-500/50 rounded-2xl cursor-pointer bg-black/20 hover:bg-black/40 transition-all group-hover:text-emerald-400 text-slate-400 text-sm font-medium">
-                                            <Upload className="w-6 h-6 mb-2 text-slate-500 group-hover:text-emerald-400 transition-colors" />
-                                            {data.paymentProof ? (
-                                                <span className="text-emerald-400 flex items-center bg-emerald-500/10 px-3 py-1 rounded-full text-xs border border-emerald-500/20">
-                                                    <CheckCircle className="w-3 h-3 mr-1.5" />
-                                                    {data.paymentProof.name.substring(0, 20)}...
-                                                </span>
+                                            {qrCodeUrl ? (
+                                                <img src={qrCodeUrl} alt="Payment QR" className="w-full h-full object-contain p-2" />
                                             ) : (
-                                                <span className="group-hover:translate-y-[-2px] transition-transform">Tap to Upload Screenshot</span>
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <Loader2 className="animate-spin text-emerald-500 w-12 h-12 mb-3" />
+                                                    <span className="text-slate-400 text-sm">Loading QR Code...</span>
+                                                </div>
                                             )}
-                                        </label>
+                                        </div>
+
+                                        {/* Amount Display under QR */}
+                                        <div className="mt-6 text-center">
+                                            <p className="text-slate-400 text-sm uppercase tracking-wider mb-1 font-bold">Amount to Pay</p>
+                                            <p className="text-4xl font-black text-white font-mono">₹{selectedPlan.price.toLocaleString()}</p>
+                                            <p className="text-emerald-400 text-sm mt-2 font-medium">{selectedPlan.name} Plan • {selectedPlan.duration}</p>
+                                        </div>
                                     </div>
 
-                                    <Button className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 py-6 text-lg font-bold shadow-lg shadow-emerald-900/20 mt-4 border border-white/10" disabled={isLoading}>
-                                        {isLoading ? <Loader2 className="animate-spin" /> : "Complete Registration"}
-                                    </Button>
-                                </form>
+                                    {/* Right Side: Payment Form */}
+                                    <div className="flex flex-col justify-center">
+                                        <form onSubmit={handleFinalSignup} className="space-y-6">
+                                            {/* Instructions */}
+                                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 mb-2">
+                                                <h4 className="text-emerald-400 font-bold mb-3 flex items-center gap-2">
+                                                    <QrCode className="w-5 h-5" />
+                                                    Payment Instructions
+                                                </h4>
+                                                <ol className="text-sm text-slate-300 space-y-2">
+                                                    <li className="flex items-start gap-2">
+                                                        <span className="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-xs font-bold flex-shrink-0">1</span>
+                                                        <span>Open any UPI app (GPay, PhonePe, Paytm)</span>
+                                                    </li>
+                                                    <li className="flex items-start gap-2">
+                                                        <span className="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-xs font-bold flex-shrink-0">2</span>
+                                                        <span>Scan the QR code and complete payment</span>
+                                                    </li>
+                                                    <li className="flex items-start gap-2">
+                                                        <span className="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-xs font-bold flex-shrink-0">3</span>
+                                                        <span>Enter UTR/Reference number & upload screenshot</span>
+                                                    </li>
+                                                </ol>
+                                            </div>
+
+                                            {/* Transaction ID Input */}
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-emerald-500/80 uppercase tracking-widest ml-1">Transaction Ref / UTR Number</label>
+                                                <input
+                                                    name="transactionId"
+                                                    placeholder="e.g. UPI-1234567890 or Bank Ref No."
+                                                    value={data.transactionId}
+                                                    onChange={handleChange}
+                                                    required
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-emerald-400 font-mono text-lg tracking-wide focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all placeholder:text-slate-600"
+                                                />
+                                            </div>
+
+                                            {/* File Upload */}
+                                            <div className="relative group">
+                                                <input type="file" id="file_upload" className="hidden" onChange={handleFileChange} accept="image/*" />
+                                                <label htmlFor="file_upload" className="flex flex-col items-center justify-center w-full px-6 py-8 border-2 border-dashed border-white/10 hover:border-emerald-500/50 rounded-2xl cursor-pointer bg-black/20 hover:bg-emerald-500/5 transition-all duration-300 text-center">
+                                                    <Upload className="w-8 h-8 mb-3 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                                                    {data.paymentProof ? (
+                                                        <span className="text-emerald-400 flex items-center bg-emerald-500/10 px-4 py-2 rounded-full text-sm border border-emerald-500/20 font-medium">
+                                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                                            {data.paymentProof.name.substring(0, 25)}...
+                                                        </span>
+                                                    ) : (
+                                                        <>
+                                                            <span className="text-slate-400 group-hover:text-emerald-400 font-medium transition-colors">Upload Payment Screenshot</span>
+                                                            <span className="text-slate-600 text-sm mt-1">PNG, JPG up to 5MB</span>
+                                                        </>
+                                                    )}
+                                                </label>
+                                            </div>
+
+                                            {/* Submit Button */}
+                                            <Button
+                                                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 py-6 text-lg font-bold shadow-xl shadow-emerald-900/30 border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                                disabled={isLoading}
+                                            >
+                                                {isLoading ? <Loader2 className="animate-spin" /> : "Complete Registration"}
+                                            </Button>
+
+                                            {/* Security Badge */}
+                                            <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
+                                                <ShieldCheck className="w-4 h-4 text-emerald-500/50" />
+                                                <span>Your payment is secure and encrypted</span>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
                             </motion.div>
                         )
                     }
