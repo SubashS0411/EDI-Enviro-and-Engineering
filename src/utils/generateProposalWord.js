@@ -320,7 +320,7 @@ export const generateProposalWord = async (data) => {
                 ],
                 [10, 75, 15]
             ),
-            new PageBreak()
+            new Paragraph({ children: [new PageBreak()] })
         );
 
         // ==========================================
@@ -343,7 +343,7 @@ export const generateProposalWord = async (data) => {
                 ],
                 [40, 60]
             ),
-            new PageBreak()
+            new Paragraph({ children: [new PageBreak()] })
         );
 
         // ==========================================
@@ -424,7 +424,7 @@ export const generateProposalWord = async (data) => {
             ...performanceGuarantees.importantConsiderations.bullets.map(b =>
                 createParagraph(`• ${b}`, { indent: { left: 360 } })
             ),
-            new PageBreak()
+            new Paragraph({ children: [new PageBreak()] })
         );
 
         // ==========================================
@@ -462,7 +462,7 @@ export const generateProposalWord = async (data) => {
             ...theoryContent.vfa.consequences.map(b => createParagraph(`• ${b}`, { indent: { left: 360 } })),
             new Paragraph({ text: "", spacing: { before: 120 } }),
             createParagraph(theoryContent.vfa.controlMeasure, { textOptions: { bold: true } }),
-            new PageBreak()
+            new Paragraph({ children: [new PageBreak()] })
         );
 
         // ==========================================
@@ -860,7 +860,7 @@ export const generateProposalWord = async (data) => {
             [50, 50]
         ));
 
-        sections.push(new PageBreak());
+        sections.push(new Paragraph({ children: [new PageBreak()] }));
 
         // ==========================================
         // SECTION 5: EXCLUSIONS
