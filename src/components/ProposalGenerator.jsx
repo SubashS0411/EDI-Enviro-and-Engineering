@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, Loader2, AlertTriangle, AlertCircle, FileText, Download, FileType } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -1526,6 +1527,20 @@ const ProposalGenerator = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">Technical Proposal Generator</h2>
         <div className="flex items-center gap-4">
+          {!user && (
+            <div className="flex gap-3 mr-4">
+              <Link to="/auth">
+                <Button variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50">
+                  Log In
+                </Button>
+              </Link>
+              <Link to="/auth">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200">
+                  Sign Up
+                </Button>
+              </Link>
+            </div>
+          )}
           <div className="flex space-x-2">
             <span className={`px-3 py-1 rounded-full text-xs font-bold ${step === 1 ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}>1. Details</span>
             <span className={`px-3 py-1 rounded-full text-xs font-bold ${step === 2 ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}>2. Specs</span>

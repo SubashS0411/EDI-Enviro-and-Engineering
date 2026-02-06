@@ -275,6 +275,9 @@ export const generateProposalWord = async (data) => {
             createParagraph("FOR", { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
             createParagraph(clientInfo.proposalTitle || "WASTEWATER TREATMENT PLANT", { textOptions: { bold: true, size: 36, color: "006400" }, alignment: AlignmentType.CENTER, spacingAfter: 800 }),
             new Paragraph({ text: "", spacing: { before: 1500 } }),
+            createParagraph("Submitted by:", { textOptions: { size: 24, italic: true, color: "555555" }, alignment: AlignmentType.CENTER }),
+            createParagraph("EDI Enviro & Engineering", { textOptions: { bold: true, size: 28, color: "006400" }, alignment: AlignmentType.CENTER, spacingAfter: 400 }),
+
             createParagraph(`Client: ${safeString(clientInfo.clientName)}`, { textOptions: { bold: true, size: 28 }, alignment: AlignmentType.CENTER }),
             createParagraph(`Reference: ${safeString(clientInfo.referenceNumber)}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
             createParagraph(`Date: ${new Date().toLocaleDateString()}`, { textOptions: { size: 24 }, alignment: AlignmentType.CENTER }),
