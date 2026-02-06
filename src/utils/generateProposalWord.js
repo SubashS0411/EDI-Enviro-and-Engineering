@@ -147,6 +147,12 @@ export const generateProposalWord = async (data) => {
             clientInfo = {},
             params = [],
             anaerobicFeedParams = [],
+            dosingSystems = {},
+            dosingCalculations = {},
+            daf = {},
+            dafPolyDosing,
+            dafCoagulantDosing,
+            screens = {},
             // Equipment Data & Standard Inputs
             primaryClarifier = {},
             primaryClarifierMech = {},
@@ -169,6 +175,7 @@ export const generateProposalWord = async (data) => {
             treatedWaterTank = {},
             treatedWaterPump = {},
             tertiarySpecs = {}, // MGF/ACF
+            filtersSpecs,
             mgfSpecs,
             mgfCalculations,
             acfSpecs,
@@ -485,15 +492,103 @@ export const generateProposalWord = async (data) => {
         };
 
         // 4.1 DAF [Scope: EDI]
-        createEquipSection("4.1", "Dissolved Air Flotation (DAF)", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Flow Rate", safeString(clientInfo.designFlow || "250 m3/hr")],
-                ["Make", "Krofta / DAFTech / Ishan / Kpack"],
-                ["Inlet / Outlet TSS", `${safeString(params.find(p => p.name === 'TSS')?.value || "4000")} / <300 mg/l`],
-                ["Quantity", "1 No."]
-            ]
-        );
+        if (daf && daf.required) {
+            createEquipSection("4.1", "Dissolved Air Flotation (DAF)", "EDI", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Flow Rate", safeString(clientInfo.designFlow || "250 m3/hr")],
+                    ["Make", "Krofta / DAFTech / Ishan / Kpack"],
+                    ["Inlet / Outlet TSS", `${safeString(params.find(p => p.name === 'TSS')?.value || "4000")} / <300 mg/l`],
+                    ["Quantity", "1 No."]
+                ]
+            );
+        }
+
+        // 4.1.1 DAF Dosing Systems (Polymer & Coagulant)
+        if (dafPolyDosing && dafPolyDosing.required) {
+            sections.push(createHeading("4.1.1 DAF Polymer Dosing System"));
+
+            // Prep Tank
+            const pt = dafPolyDosing.equipment?.prepTank;
+            if (pt) {
+                sections.push(createParagraph("A) Preparation Tank", { textOptions: { bold: true } }));
+                sections.push(createSimpleTable(null, [
+                    ["Capacity", `${safeString(pt.capacity)} m³`, "MOC", safeString(pt.material)],
+                    ["Quantity", safeString(pt.qty), "Type", "Vertical"]
+                ], [25, 25, 25, 25]));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+
+            // Prep Agitator
+            const pa = dafPolyDosing.equipment?.prepAgitator;
+            if (pa) {
+                sections.push(createParagraph("B) Prep Tank Agitator"));
+                sections.push(createSimpleTable(null, [
+                    ["Capacity", safeString(pa.capacity), "MOC", safeString(pa.material)],
+                    ["Quantity", safeString(pa.qty), "Make", safeString(pa.make)] // Check 'Make' exists in component? Yes.
+                ], [25, 25, 25, 25]));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+
+            // Dosing Tank
+            const dt = dafPolyDosing.equipment?.dosingTank;
+            if (dt) {
+                sections.push(createParagraph("C) Dosing Tank"));
+                sections.push(createSimpleTable(null, [
+                    ["Capacity", `${safeString(dt.capacity)} m³`, "MOC", safeString(dt.material)],
+                    ["Quantity", safeString(dt.qty), "-", "-"]
+                ], [25, 25, 25, 25]));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+
+            // Dosing Pump
+            const dp = dafPolyDosing.equipment?.dosingPumps;
+            if (dp) {
+                sections.push(createParagraph("D) Dosing Pump"));
+                sections.push(createSimpleTable(null, [
+                    ["Capacity", `${safeString(dp.capacity)} LPH`, "MOC", safeString(dp.material)],
+                    ["Quantity", safeString(dp.qty), "-", "-"]
+                ], [25, 25, 25, 25]));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+        }
+
+        if (dafCoagulantDosing && dafCoagulantDosing.required) {
+            sections.push(createHeading("4.1.2 DAF Coagulant Dosing System"));
+
+            // Dosing Tank
+            const dt = dafCoagulantDosing.equipment?.dosingTank;
+            if (dt) {
+                sections.push(createParagraph("A) Dosing Tank"));
+                sections.push(createSimpleTable(null, [
+                    ["Capacity", `${safeString(dt.capacity)} m³`, "MOC", safeString(dt.material)],
+                    ["Quantity", safeString(dt.qty), "-", "-"]
+                ], [25, 25, 25, 25]));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+
+            // Dosing Agitator
+            const da = dafCoagulantDosing.equipment?.dosingAgitator;
+            if (da) {
+                sections.push(createParagraph("B) Agitator"));
+                sections.push(createSimpleTable(null, [
+                    ["Capacity", safeString(da.capacity), "MOC", safeString(da.material)],
+                    ["Quantity", safeString(da.qty), "-", "-"]
+                ], [25, 25, 25, 25]));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+
+            // Dosing Pump
+            const dp = dafCoagulantDosing.equipment?.dosingPumps;
+            if (dp) {
+                sections.push(createParagraph("C) Dosing Pump"));
+                sections.push(createSimpleTable(null, [
+                    ["Capacity", `${safeString(dp.capacity)} LPH`, "MOC", safeString(dp.material)],
+                    ["Quantity", safeString(dp.qty), "-", "-"]
+                ], [25, 25, 25, 25]));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+        }
 
         // 4.2 Chemical Dosing Systems - Detailed Format
         sections.push(createHeading("4.2 Chemical Dosing Systems", 2));
@@ -554,78 +649,100 @@ export const generateProposalWord = async (data) => {
             }
         };
 
-        // Urea
-        renderDosingDetailed("Urea Dosing System",
-            { "N Required": "Calculated Value", "Dosing Tank": "2500 Lit", "Dosing Pump": "110 LPH" },
-            { capacity: "110 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "PP", qty: "2 (1W+1S)" },
-            { capacity: "2500 Lit", type: "Vertical", moc: "HDPE", make: "Sintex/EQT", qty: "1" },
-            { rpm: "80-90", make: "Ceecons/Verito/EQT", type: "Turbine", moc: "SS316", qty: "1" }
-        );
+        // Dosing Systems (Dynamic)
+        const dosingKeys = [
+            { key: 'Urea', calcKey: 'urea', label: 'Urea Dosing System' },
+            { key: 'Phosphoric Acid', calcKey: 'phosphoricAcid', label: 'Phosphoric Acid Dosing System' },
+            { key: 'DAP', calcKey: 'dap', label: 'DAP Dosing System' },
+            { key: 'Caustic', calcKey: 'caustic', label: 'Caustic Dosing System' },
+            { key: 'HCl', calcKey: 'hcl', label: 'HCl Dosing System' },
+            { key: 'Micronutrients', calcKey: 'micronutrients', label: 'Micronutrients Dosing System' },
+            { key: 'Poly', calcKey: 'poly', label: 'Polymer Dosing System' }
+        ];
 
-        // Phosphoric Acid
-        renderDosingDetailed("Phosphoric Acid Dosing System",
-            { "P Required": "Calculated Value", "Dosing Tank": "500 Lit", "Dosing Pump": "25 LPH" },
-            { capacity: "25 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "PP", qty: "2 (1W+1S)" },
-            { capacity: "500 Lit", type: "Vertical", moc: "HDPE", make: "Sintex/EQT", qty: "1" },
-            null // No agitator typically for acid
-        );
+        dosingKeys.forEach(({ key, calcKey, label }) => {
+            const sys = dosingSystems[key];
+            if (sys && sys.required) {
+                // Prepare pump data
+                const pump = {
+                    capacity: `${safeString(sys.pump?.capacity)} LPH`,
+                    head: `${safeString(sys.pump?.head)} m`,
+                    make: safeString(sys.pump?.make),
+                    type: safeString(sys.pump?.type),
+                    moc: safeString(sys.pump?.moc),
+                    qty: safeString(sys.pump?.qty)
+                };
 
-        // Caustic
-        renderDosingDetailed("Caustic Dosing System",
-            null, // No calcs shown
-            { capacity: "100 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "SS316", qty: "2 (1W+1S)" },
-            { capacity: "1000 Lit", type: "Vertical", moc: "MS", make: "Site Fabrication", qty: "1" },
-            { rpm: "80-90", make: "Ceecons/Verito/EQT", type: "Turbine", moc: "SS316", qty: "1" }
-        );
+                // Prepare tank data
+                let tank = null;
+                if (sys.tank) {
+                    tank = {
+                        capacity: `${safeString(sys.tank?.capacity)} Lit`,
+                        type: safeString(sys.tank?.type || "Vertical"),
+                        moc: safeString(sys.tank?.moc),
+                        make: safeString(sys.tank?.make),
+                        qty: safeString(sys.tank?.qty)
+                    };
+                }
 
-        // HCl
-        renderDosingDetailed("HCl Dosing System",
-            null,
-            { capacity: "10 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "PP", qty: "2 (1W+1S)" },
-            { capacity: "500 Lit", type: "Vertical", moc: "MSRL", make: "Site Fabrication", qty: "1" },
-            null
-        );
+                // Prepare agitator data
+                let agitator = null;
+                if (sys.agitator) {
+                    agitator = {
+                        rpm: safeString(sys.agitator?.rpm),
+                        make: safeString(sys.agitator?.make),
+                        type: safeString(sys.agitator?.type),
+                        moc: safeString(sys.agitator?.moc),
+                        qty: safeString(sys.agitator?.qty)
+                    };
+                }
 
-        // Micronutrients
-        renderDosingDetailed("Micronutrients Dosing System",
-            null,
-            { capacity: "10 LPH", make: "Miltonroy / Prominent / EQT", type: "Diaphragm", moc: "PP", qty: "2 (1W+1S)" },
-            { capacity: "500 Lit", type: "Vertical", moc: "HDPE", make: "Sintex/EQT", qty: "1" },
-            { rpm: "80-90", make: "Ceecons/Verito/EQT", type: "Turbine", moc: "SS316", qty: "1" }
-        );
+                // Prepare calculations data
+                const calc = dosingCalculations[calcKey] || null;
+
+                renderDosingDetailed(label, calc, pump, tank, agitator);
+            }
+        });
 
 
         // 4.3 Screening System [Scope: EDI]
-        createEquipSection("4.3", "Screening System", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Type", "Fine Screen"],
-                ["Capacity", safeString(clientInfo.designFlow || "250 m3/hr")],
-                ["MOC", "SS304"],
-                ["Pore Size", "2mm"]
-            ]
-        );
+        if (screens && screens.required) {
+            createEquipSection("4.3", "Screening System", "EDI", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Type", "Fine Screen"],
+                    ["Channel Size", safeString(screens.channelSize || "-")],
+                    ["MOC", safeString(screens.moc || "SS304")],
+                    ["Quantity", safeString(screens.qty || "1")]
+                ]
+            );
+        }
 
-        // 4.4 Primary Clarification [Scope: Client] - NEW
-        createEquipSection("4.4", "Primary Clarification System", "Client", null,
-            ["Parameter", "Specification"],
-            [
-                ["Tank MOC", "RCC (Concrete)"],
-                ["Mechanism", "Central Driven, MSEP (Make: Indofab/EQT)"],
-                ["Sludge Pump", "Centrifugal, Make: KSB/Abirami/Johnson"]
-            ]
-        );
+        // 4.4 Primary Clarification [Scope: Client]
+        if (clientInfo.industry === 'Paper' && primaryClarifier.required) {
+            createEquipSection("4.4", "Primary Clarification System", "Client", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Tank Dimensions", `${safeString(primaryClarifier.dim || "-")}, RCC`],
+                    ["Mechanism Make", safeString(primaryClarifierMech.make || "-")],
+                    ["Mechanism Qty", safeString(primaryClarifierMech.qty || "1")],
+                    ["Sludge Pump", `Cap: ${safeString(primarySludgePump.capacity)} m³/hr, Qty: ${safeString(primarySludgePump.qty)}`]
+                ]
+            );
+        }
 
-        // 4.5 Cooling System [Scope: EDI] - NEW
-        createEquipSection("4.5", "Cooling System (PHE)", "EDI", null,
-            ["Parameter", "Specification"],
-            [
-                ["Capacity", safeString(clientInfo.designFlow || "250 m3/hr")],
-                ["MOC", "SS304"],
-                ["Temp Out", "35°C"],
-                ["Quantity", "2 Nos (1W+1S)"]
-            ]
-        );
+        // 4.5 Cooling System [Scope: EDI]
+        if (coolingSystem && coolingSystem.required) {
+            createEquipSection("4.5", "Cooling System (PHE)", "EDI", null,
+                ["Parameter", "Specification"],
+                [
+                    ["Capacity", safeString(clientInfo.designFlow || "250 m3/hr")],
+                    ["MOC", "SS304"],
+                    ["Temp Out", "35°C"],
+                    ["Quantity", "2 Nos (1W+1S)"]
+                ]
+            );
+        }
 
         // 4.6 Pre-acidification Tank [Scope: Client] - (Relevant for Anaerobic)
         if (selectedSections.includes('Anaerobic Section')) {
@@ -723,12 +840,14 @@ export const generateProposalWord = async (data) => {
 
             // B) Dimensions & Details
             sections.push(createParagraph("B) Dimensions & Details", { textOptions: { bold: true } }));
+
+            const atGeom = aerationTank.tankGeometry || {};
             sections.push(createSimpleTable(
                 null,
                 [
-                    ["Shape", "Rectangular", "Dimensions", "40.45m (L) x 20.22m (W) x 4m (H)"],
-                    ["HRT", "11.43 hours", "MOC", "RCC"],
-                    ["Quantity", "1", "Type", "Extended Aeration"]
+                    ["Shape", safeString(atGeom.shape || "Rectangular"), "Dimensions", safeString(atGeom.dimensions || "-")],
+                    ["HRT", `${safeString(aerationTank.hrt || "-")} hours`, "MOC", "RCC"],
+                    ["Quantity", safeString(atGeom.quantity || "1"), "Type", "Extended Aeration"]
                 ],
                 [20, 30, 20, 30]
             ));
@@ -741,8 +860,8 @@ export const generateProposalWord = async (data) => {
             sections.push(createSimpleTable(
                 null,
                 [
-                    ["Motor HP", "5 HP", "Make", "Indofab"],
-                    ["Type", "Surface aerator", "Quantity", "9"]
+                    ["Motor HP", `${safeString(aerators.power || "-")} HP`, "Make", safeString(aerators.make)],
+                    ["Type", "Surface aerator", "Quantity", safeString(aerators.qty)]
                 ],
                 [25, 25, 25, 25]
             ));
@@ -750,12 +869,13 @@ export const generateProposalWord = async (data) => {
 
             // B) Air Blowers
             sections.push(createParagraph("B) Air Blowers [Scope: EDI]", { textOptions: { bold: true } }));
+            const blowerData = airBlower.airBlowerData || {};
             sections.push(createSimpleTable(
                 null,
                 [
-                    ["Total Air Req", "17177.50 Nm³/day", "Air Flow", "715.73 Nm³/hr"],
-                    ["Head", "5000 mWC", "Make", "KPT"],
-                    ["Type", "Tri lobe", "Quantity", "2 (1W+1S)"]
+                    ["Total Air Req", `${safeString(blowerData.airRequirementPerHour || airBlower.totalAirReq || "-")} m³/hr`, "Air Flow", `${safeString(airBlower.airFlow || "-")} m³/hr`],
+                    ["Head", `${safeString(blowerData.pressure || "5000")} mWC`, "Make", safeString(blowerData.suggestedMake || airBlower.make)],
+                    ["Type", safeString(blowerData.type || "Tri lobe"), "Quantity", safeString(airBlower.qty || "2 (1W+1S)")]
                 ],
                 [25, 25, 25, 25]
             ));
@@ -784,20 +904,86 @@ export const generateProposalWord = async (data) => {
         sections.push(createHeading("4.17 Sludge Management System", 2));
 
         const sludgeSpecs = sludgeCalculationDetails || {};
-        const sludgeRows = [
-            ["Dewatering Mechanism", sludgeSpecs.dewateringMechanism || (sludgeSpecs.screwPressRequired ? "Screw Press" : "Decanter Centrifuge")],
+
+        // 1. Sludge Dewatering Unit
+        sections.push(createHeading("4.17.1 Sludge Dewatering Unit", 3));
+        const dewateringMechanism = sludgeSpecs.decanterRequired ? "Decanter Centrifuge" : (sludgeSpecs.screwPressRequired ? "Screw Press" : "Not Selected");
+
+        const dewateringRows = [
+            ["Mechanism", dewateringMechanism],
             ["Capacity", `${sludgeSpecs.dewateringCapacityTons || 0} Tons/day Solids`],
-            ["Processing Rate", `${sludgeSpecs.dewateringProcessingCapacityKgHr || 0} kg/hr`],
-            ["Polymer Dosing System", "Auto Dosing System"],
-            ["Dosing Tank", `${sludgeSpecs.dosingTankSpecs?.qty || 1} No. x ${sludgeSpecs.dosingTankSpecs?.capacity || 500} Lit`],
-            ["Dosing Pump", `${sludgeSpecs.dosingPumpSpecs?.qty || '2 Nos'} x ${sludgeSpecs.dosingPumpSpecs?.capacity || 50} LPH`]
+            ["Processing Rate", `${sludgeSpecs.dewateringProcessingCapacityKgHr || 0} kg/hr`]
         ];
 
-        sections.push(createSimpleTable(
-            ["Parameter", "Specification"],
-            sludgeRows,
-            [50, 50]
-        ));
+        let unitSpecs = null;
+        if (sludgeSpecs.decanterRequired) unitSpecs = sludgeSpecs.decanterSpecs;
+        else if (sludgeSpecs.screwPressRequired) unitSpecs = sludgeSpecs.screwPressSpecs;
+
+        if (unitSpecs) {
+            dewateringRows.push(["Make", safeString(unitSpecs.make)]);
+            dewateringRows.push(["Quantity", safeString(unitSpecs.qty)]);
+            dewateringRows.push(["MOC", safeString(unitSpecs.bowl || "SS316")]);
+        }
+
+        sections.push(createSimpleTable(["Parameter", "Specification"], dewateringRows, [50, 50]));
+        sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+
+        // 2. Polymer Dosing System for Sludge
+        sections.push(createHeading("4.17.2 Sludge Polymer Dosing System", 3));
+
+        // Prep Tank
+        const spt = sludgeSpecs.prepTankSpecs;
+        if (spt) {
+            sections.push(createParagraph("A) Preparation Tank", { textOptions: { bold: true } }));
+            sections.push(createSimpleTable(null, [
+                ["Capacity", `${safeString(sludgeSpecs.prepTankVolume || 0)} Lit`, "MOC", safeString(spt.moc)],
+                ["Make", safeString(spt.make), "Qty", safeString(spt.qty)],
+                ["Type", safeString(spt.type), "Agitator Power", `${safeString(sludgeSpecs.prepTankAgitatorPower)} kW`]
+            ], [25, 25, 25, 25]));
+
+            // Prep Agitator Details
+            if (sludgeSpecs.prepAgitatorSpecs) {
+                const spa = sludgeSpecs.prepAgitatorSpecs;
+                sections.push(createSimpleTable(null, [
+                    ["Agitator Type", safeString(spa.type), "Agitator Make", safeString(spa.make)],
+                    ["Agitator MOC", safeString(spa.moc), "Agitator Qty", safeString(spa.qty)]
+                ], [25, 25, 25, 25]));
+            }
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+        }
+
+        // Dosing Tank
+        const sdt = sludgeSpecs.dosingTankSpecs;
+        if (sdt) {
+            sections.push(createParagraph("B) Dosing Tank", { textOptions: { bold: true } }));
+            sections.push(createSimpleTable(null, [
+                ["Capacity", `${safeString(sludgeSpecs.dosingTankVolume || 0)} Lit`, "MOC", safeString(sdt.moc)],
+                ["Make", safeString(sdt.make), "Qty", safeString(sdt.qty)],
+                ["Type", safeString(sdt.type), "Agitator Power", `${safeString(sludgeSpecs.dosingTankAgitatorPower)} kW`]
+            ], [25, 25, 25, 25]));
+
+            // Dosing Agitator Details
+            if (sludgeSpecs.dosingAgitatorSpecs) {
+                const sda = sludgeSpecs.dosingAgitatorSpecs;
+                sections.push(createSimpleTable(null, [
+                    ["Agitator Type", safeString(sda.type), "Agitator Make", safeString(sda.make)],
+                    ["Agitator MOC", safeString(sda.moc), "Agitator Qty", safeString(sda.qty)]
+                ], [25, 25, 25, 25]));
+            }
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+        }
+
+        // Dosing Pump
+        const sdp = sludgeSpecs.dosingPumpSpecs;
+        if (sdp) {
+            sections.push(createParagraph("C) Dosing Pump", { textOptions: { bold: true } }));
+            sections.push(createSimpleTable(null, [
+                ["Capacity", `${safeString(sdp.capacity || 50)} LPH`, "MOC", safeString(sdp.moc)],
+                ["Make", safeString(sdp.make), "Qty", safeString(sdp.qty)],
+                ["Type", safeString(sdp.type), "-", "-"]
+            ], [25, 25, 25, 25]));
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+        }
 
         // 4.18 Treated Water Handling
         createEquipSection("4.18", "Treated Water Handling", null, null,
@@ -810,6 +996,18 @@ export const generateProposalWord = async (data) => {
 
         // 4.19 Other Major Equipment
         sections.push(createHeading("4.19 Other Major Equipment", 2));
+
+        // Filter Feed Pump - inserted here or before MGF
+        if (filtersSpecs && filtersSpecs.filterFeedPump) {
+            const ffp = filtersSpecs.filterFeedPump;
+            sections.push(createParagraph("Filter Feed Pump:", { textOptions: { bold: true, size: 22 } }));
+            sections.push(createSimpleTable(null, [
+                ["Quantity", safeString(ffp.qty), "Type", safeString(ffp.type)],
+                ["MOC", safeString(ffp.moc), "Make", safeString(ffp.make)]
+            ], [25, 25, 25, 25]));
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+        }
+
         sections.push(createSimpleTable(
             ["Equipment Name", "Specifications", "Scope"],
             [
@@ -818,6 +1016,76 @@ export const generateProposalWord = async (data) => {
             ],
             [35, 45, 20]
         ));
+
+        // 4.19.a Multigrade Filter (MGF) [Scope: EDI]
+        if (selectedSections.includes('Filter Section') || (mgfSpecs && mgfSpecs.operatingHours)) {
+            sections.push(createHeading("4.19.1 Multigrade Filter (MGF)", 2));
+
+            if (mgfCalculations) {
+                sections.push(createParagraph("Calculations:", { textOptions: { bold: true, size: 22 } }));
+                sections.push(createSimpleTable(
+                    ["Parameter", "Value", "Parameter", "Value"],
+                    [
+                        ["Design Flow", `${mgfCalculations.designFlow || 0} m³/hr`, "Filter Area Req", `${mgfCalculations.filterArea || 0} m²`],
+                        ["Area Required", `${mgfCalculations.areaReq || 0} m²`, "No. of MGF", `${mgfCalculations.numMGF || 0}`],
+                        ["Actual Area", `${mgfCalculations.actualArea || 0} m²`, "Backwash Flow", `${mgfCalculations.backwashFlow || 0} m³/hr`],
+                        ["Backwash Pump", `${mgfCalculations.backwashPumpCap || 0} m³/hr`, "Air Requirement", `${mgfCalculations.airReq || 0} Nm³/hr`]
+                    ],
+                    [25, 25, 25, 25]
+                ));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+
+            if (mgfSpecs) {
+                sections.push(createParagraph("Specifications:", { textOptions: { bold: true, size: 22 } }));
+                sections.push(createSimpleTable(
+                    ["Parameter", "Value"],
+                    [
+                        ["Operating Hours", `${mgfSpecs.operatingHours || 24} hrs`],
+                        ["Filtration Rate", `${mgfSpecs.filtrationRate || 10} m/hr`],
+                        ["Diameter", `${mgfSpecs.diameter || 1} m`],
+                        ["Backwash Rate", `${mgfSpecs.backwashRate || 15} m/hr`]
+                    ],
+                    [50, 50]
+                ));
+            }
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+        }
+
+        // 4.19.b Activated Carbon Filter (ACF) [Scope: EDI]
+        if (selectedSections.includes('Filter Section') || (acfSpecs && acfSpecs.operatingHours)) {
+            sections.push(createHeading("4.19.2 Activated Carbon Filter (ACF)", 2));
+
+            if (acfCalculations) {
+                sections.push(createParagraph("Calculations:", { textOptions: { bold: true, size: 22 } }));
+                sections.push(createSimpleTable(
+                    ["Parameter", "Value", "Parameter", "Value"],
+                    [
+                        ["Design Flow", `${acfCalculations.designFlow || 0} m³/hr`, "Filter Area Req", `${acfCalculations.filterArea || 0} m²`],
+                        ["Area Required", `${acfCalculations.areaReq || 0} m²`, "No. of ACF", `${acfCalculations.numACF || 0}`],
+                        ["Actual Area", `${acfCalculations.actualArea || 0} m²`, "Backwash Flow", `${acfCalculations.backwashFlow || 0} m³/hr`],
+                        ["Backwash Pump", `${acfCalculations.backwashPumpCap || 0} m³/hr`, "-", "-"]
+                    ],
+                    [25, 25, 25, 25]
+                ));
+                sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+            }
+
+            if (acfSpecs) {
+                sections.push(createParagraph("Specifications:", { textOptions: { bold: true, size: 22 } }));
+                sections.push(createSimpleTable(
+                    ["Parameter", "Value"],
+                    [
+                        ["Operating Hours", `${acfSpecs.operatingHours || 24} hrs`],
+                        ["Filtration Rate", `${acfSpecs.filtrationRate || 10} m/hr`],
+                        ["Diameter", `${acfSpecs.diameter || 1} m`],
+                        ["Backwash Rate", `${acfSpecs.backwashRate || 15} m/hr`]
+                    ],
+                    [50, 50]
+                ));
+            }
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+        }
 
         // 4.20 Instrumentation
         if (instruments && instruments.length > 0) {
