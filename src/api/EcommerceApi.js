@@ -1,5 +1,5 @@
-const ECOMMERCE_API_URL = "https://api-ecommerce.hostinger.com";
-const ECOMMERCE_STORE_ID = "store_01KD4M9K0P028NVC1747KNCTPW";
+const ECOMMERCE_API_URL = import.meta.env.VITE_ECOMMERCE_API_URL || "https://api-ecommerce.hostinger.com";
+const ECOMMERCE_STORE_ID = import.meta.env.VITE_ECOMMERCE_STORE_ID || "store_01KD4M9K0P028NVC1747KNCTPW";
 
 export const formatCurrency = (priceInCents, currencyInfo) => {
 	if (!currencyInfo || priceInCents === null || priceInCents === undefined) {
@@ -119,7 +119,7 @@ const getLowestPriceVariant = (product) =>
 const getProductPrice = (product) => {
 	const selectedVariant =
 		product.site_product_selection === "lowest_price_first" ||
-		product.site_product_selection === null
+			product.site_product_selection === null
 			? getLowestPriceVariant(product)
 			: product.variants[0];
 
@@ -343,7 +343,7 @@ const getProductPrice = (product) => {
  *
  * @returns {Promise<GetProductsResponse>} Response object with paginated products
  */
-export async function getProducts({ids, offset, limit, order, sort_by, is_hidden, to_date} = {}) {
+export async function getProducts({ ids, offset, limit, order, sort_by, is_hidden, to_date } = {}) {
 	const queryParams = new URLSearchParams();
 
 	if (ids) {
@@ -446,7 +446,7 @@ export async function getProducts({ids, offset, limit, order, sort_by, is_hidden
  *   field: "sku"
  * });
  */
-export async function getProduct(id, {field} = {}) {
+export async function getProduct(id, { field } = {}) {
 	const queryParams = new URLSearchParams();
 
 	if (field) {
@@ -523,7 +523,7 @@ export async function getProduct(id, {field} = {}) {
  *   product_ids: ["product_123", "product_456", "product_789"]
  * });
  */
-export async function getProductQuantities({fields, product_ids}) {
+export async function getProductQuantities({ fields, product_ids }) {
 	const queryParams = new URLSearchParams();
 
 	queryParams.append("fields", fields);
@@ -655,9 +655,9 @@ async function getCheckoutLanguage() {
  *   locale: "en",
  * });
  */
-export async function initializeCheckout({items, successUrl, cancelUrl, locale}) {
+export async function initializeCheckout({ items, successUrl, cancelUrl, locale }) {
 	const url = `${ECOMMERCE_API_URL}/store/${ECOMMERCE_STORE_ID}/checkout`;
-	
+
 	const checkoutInitPromise = fetch(url, {
 		method: "POST",
 		headers: {

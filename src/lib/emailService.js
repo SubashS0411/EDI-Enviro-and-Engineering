@@ -1,14 +1,13 @@
 import emailjs from '@emailjs/browser';
 
 // --- CONFIGURATION ---
-// TODO: REPLACE WITH YOUR ACTUAL KEYS FROM EMAILJS DASHBOARD
-const SERVICE_ID = 'YOUR_SERVICE_ID';
-const PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
+const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
 // TEMPLATE_IDs
-const VERIFY_TEMPLATE_ID = 'YOUR_VERIFY_TEMPLATE_ID';
-const EXPIRY_TEMPLATE_ID = 'YOUR_EXPIRY_TEMPLATE_ID';
-const REJECT_TEMPLATE_ID = 'YOUR_REJECT_TEMPLATE_ID'; // New Template ID for Rejection
+const VERIFY_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_VERIFY_TEMPLATE_ID;
+const EXPIRY_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_EXPIRY_TEMPLATE_ID;
+const REJECT_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_REJECT_TEMPLATE_ID;
 
 /**
  * Sends a generic email using EmailJS
@@ -18,7 +17,7 @@ const REJECT_TEMPLATE_ID = 'YOUR_REJECT_TEMPLATE_ID'; // New Template ID for Rej
 const sendEmail = async (templateId, templateParams) => {
     try {
         // ENABLED REAL SENDING
-        if (SERVICE_ID === 'YOUR_SERVICE_ID') {
+        if (!SERVICE_ID || !PUBLIC_KEY || !templateId) {
             console.warn("EmailJS Keys are missing. Email will not be sent.");
             return { success: false, error: "Missing EmailJS Configuration" };
         }
@@ -170,8 +169,7 @@ export const checkAndSendReminders = async (profiles) => {
  * 4. Contact Form Inquiry
  * Trigger: User submits the 'Send us a Message' form.
  */
-// TODO: Create this template in EmailJS and get the ID
-const CONTACT_TEMPLATE_ID = 'template_contact_admin';
+const CONTACT_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_CONTACT_TEMPLATE_ID;
 
 export const sendContactEmail = async (data) => {
     const templateParams = {
