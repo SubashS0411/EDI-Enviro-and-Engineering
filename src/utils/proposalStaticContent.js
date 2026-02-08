@@ -5,6 +5,7 @@ export const staticDesignBasis = {
         { sn: 2, param: "pH", unit: "-", raw: "6.5 - 7.5", anaInlet: "6.5 - 7.5" },
         { sn: 3, param: "Temperature", unit: "°C", raw: "30 - 38", anaInlet: "30 - 38" },
         { sn: 4, param: "TSS", unit: "mg/l", raw: "4000", anaInlet: "< 300" },
+        { sn: 4, param: "TDS", unit: "mg/l", raw: "4000", anaInlet: "4000" }, // Added TDS
         { sn: 5, param: "VFA", unit: "meq/l", raw: "30", anaInlet: "< 30" },
         { sn: 6, param: "Calcium", unit: "mg/l", raw: "< 600", anaInlet: "< 600" },
         { sn: 7, param: "Sulphate", unit: "mg/l", raw: "< 200", anaInlet: "< 200" },

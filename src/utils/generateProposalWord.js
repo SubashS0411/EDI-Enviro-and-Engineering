@@ -16,7 +16,8 @@ import {
     ImageRun,
     VerticalAlign,
     PageNumber,
-    HeadingLevel
+    HeadingLevel,
+    TableOfContents
 } from "docx";
 import { saveAs } from "file-saver";
 import { clientScopeData } from './clientScopeData';
@@ -290,47 +291,25 @@ export const generateProposalWord = async (data) => {
             // ==========================================
 
             createHeading("Table of Contents"),
-
-            // Static TOC - All section titles with page numbers
-            createSimpleTable(
-                ["Section", "Title", "Page"],
-                [
-                    ["1", "Client Details & Design Basis", "3"],
-                    ["2", "Influent Parameters", "4"],
-                    ["  2.1", "Technology Overview", "5"],
-                    ["  2.2", "Process Description", "5"],
-                    ["  2.3", "Performance Guarantees", "6"],
-                    ["3", "Process Impact Analysis", "7"],
-                    ["  3.1", "Impact of Bromide", "7"],
-                    ["  3.2", "Impact of Heavy Metals", "8"],
-                    ["  3.3", "Impact of Higher VFA", "8"],
-                    ["4", "Process Equipment Specifications", "9"],
-                    ["  4.1", "Dissolved Air Flotation (DAF) [Scope: EDI]", "9"],
-                    ["  4.2", "Chemical Dosing Systems", "10"],
-                    ["  4.3", "Screening System [Scope: EDI]", "12"],
-                    ["  4.4", "Primary Clarification System [Scope: Client]", "12"],
-                    ["  4.5", "Cooling System (PHE) [Scope: EDI]", "13"],
-                    ["  4.6", "Pre-acidification Tank [Scope: Client]", "13"],
-                    ["  4.7", "Anaerobic Feed Pump [Scope: EDI]", "14"],
-                    ["  4.8", "Anaerobic Reactor System", "14"],
-                    ["  4.9", "Biomass Transfer Pump [Scope: EDI]", "15"],
-                    ["  4.10", "Biogas Handling System", "15"],
-                    ["  4.11", "Biomass Holding Tank [Scope: EDI]", "16"],
-                    ["  4.12", "Start-up Granular Biomass", "16"],
-                    ["  4.13", "Aeration Tank System [Scope: Client]", "17"],
-                    ["  4.14", "Aeration System Components", "17"],
-                    ["  4.15", "Secondary Clarifier System", "18"],
-                    ["  4.16", "Sludge Recirculation Pump [Scope: EDI]", "18"],
-                    ["  4.17", "Sludge Management System [Scope: EDI]", "19"],
-                    ["  4.18", "Treated Water Handling", "19"],
-                    ["  4.19", "Other Major Equipment", "20"],
-                    ["  4.20", "Pipings", "21"],
-                    ["  4.21", "Valves", "21"],
-                    ["5", "Exclusions from Scope of Supply & Services", "22"]
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "Right-click and select 'Update Field' to refresh the Table of Contents.",
+                        italics: true,
+                        color: "888888"
+                    })
                 ],
-                [10, 75, 15]
-            ),
-            new Paragraph({ children: [new PageBreak()] })
+                spacing: { after: 240 }
+            }),
+            new TableOfContents("Table of Contents", {
+                hyperlink: true,
+                headingStyleRange: "1-3",
+            }),
+            new Paragraph({
+                children: [
+                    new PageBreak()
+                ]
+            })
         );
 
         // ==========================================
@@ -413,7 +392,11 @@ export const generateProposalWord = async (data) => {
                 createHeading(performanceGuarantees.anaerobic.title, 3),
                 createSimpleTable(
                     performanceGuarantees.anaerobic.headers,
-                    performanceGuarantees.anaerobic.data.map(d => [d.param, d.val]),
+                    [
+                        ["Anaerobic SCOD Removal", `${safeString(data.guarantees?.anaerobicSCODEff || "80")}%`],
+                        ["Anaerobic BOD Removal", `${safeString(data.guarantees?.anaerobicBODEff || "80")}%`],
+                        ["Biogas Generation Factor", `${safeString(data.guarantees?.biogasFactor || "0.42")} Nm3/kg COD removed`]
+                    ],
                     [50, 50]
                 ),
                 new Paragraph({ text: "", spacing: { before: 240 } })
@@ -423,7 +406,11 @@ export const generateProposalWord = async (data) => {
                 createHeading(performanceGuarantees.aerobic.title, 3),
                 createSimpleTable(
                     performanceGuarantees.aerobic.headers,
-                    performanceGuarantees.aerobic.data.map(d => [d.param, d.val]),
+                    [
+                        ["Secondary Clarifier Outlet SCOD", `${safeString(data.guarantees?.outletCOD || "250")} mg/l`],
+                        ["Secondary Clarifier Outlet TSS", `${safeString(data.guarantees?.outletTSS || "50")} mg/l`],
+                        ["Secondary Clarifier Outlet BOD", `${safeString(data.guarantees?.outletBOD || "30")} mg/l`]
+                    ],
                     [50, 50]
                 )
             ] : []),
@@ -1154,6 +1141,9 @@ export const generateProposalWord = async (data) => {
         const doc = new Document({
             features: {
                 updateFields: true,
+            },
+            settings: {
+                updateFieldsOnOpen: true,
             },
             sections: [{
                 properties: {},

@@ -495,8 +495,13 @@ const Step2 = ({
     if (clientInfo.anaerobicBODLoad && performanceResults) {
       // 1. Aeration Tank Basic Calcs
       const anaBODLoad = parseFloat(clientInfo.anaerobicBODLoad) || 0;
-      const removedBODAna = parseFloat(performanceResults.kgBODRemovedAna) || 0;
-      const bodEntering = Math.max(0, anaBODLoad - removedBODAna);
+
+      // Use dynamic efficiency from guarantees if available, else fallback
+      const efficiency = parseFloat(guarantees?.anaerobicBODEff || performanceSpecs?.anaBODEff || 80);
+
+      // Calculate entering BOD based on efficiency formula
+      const bodEntering = Math.max(0, anaBODLoad * (1 - efficiency / 100));
+      const removedBODAna = Math.max(0, anaBODLoad - bodEntering);
 
       const fm = parseFloat(aerationTank.fmRatio) || 0.15;
       const mlss = parseFloat(aerationTank.mlss) || 3500;

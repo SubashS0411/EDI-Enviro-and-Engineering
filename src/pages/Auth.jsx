@@ -72,7 +72,7 @@ const BANK_DETAILS = {
 const Auth = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { login, submitSignupRequest, getQRCode, resendVerification } = useAuth();
+    const { login, submitSignupRequest, resendVerification, resetPassword, updatePassword } = useAuth();
     const { toast } = useToast();
 
     // Initialize mode based on URL param 'mode' or default to 'welcome'
@@ -82,13 +82,13 @@ const Auth = () => {
     const getInitialMode = () => {
         if (initialModeParam === 'login') return 'client-login';
         if (initialModeParam === 'admin') return 'admin-login';
+        if (initialModeParam === 'update-password') return 'update-password';
         return 'welcome';
     };
 
     const [mode, setMode] = useState(getInitialMode()); // 'welcome' | 'signup-step-1' | 'plan-selection' | 'billing-summary' | 'signup-step-2' | 'signup-success' | 'admin-login' | 'client-login'
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [qrCodeUrl, setQrCodeUrl] = useState('');
     const [fee, setFee] = useState('69');
     const [selectedPlan, setSelectedPlan] = useState(SUBSCRIPTION_PLANS[3]); // Default to Yearly
     const [copiedField, setCopiedField] = useState(null);
@@ -110,11 +110,13 @@ const Auth = () => {
     // Remove showCompanyDetails state as we use accountType now
     // const [showCompanyDetails, setShowCompanyDetails] = useState(false);
 
-    useEffect(() => {
-        setQrCodeUrl(getQRCode());
-    }, [getQRCode]);
-
-    const handleChange = (e) => setData({ ...data, [e.target.name]: e.target.value });
+    const handleChange = (e) => {
+        let { name, value } = e.target;
+        if (name === 'email') {
+            value = value.replace(/\s/g, '');
+        }
+        setData({ ...data, [name]: value });
+    };
 
     const handleFileChange = (e) => {
         if (e.target.files[0]) {
@@ -135,7 +137,7 @@ const Auth = () => {
             if (isRoleAdmin || isEmailAdmin) {
                 navigate('/admin');
             } else {
-                navigate('/');
+                navigate('/client-dashboard');
             }
         } else {
             console.error("Login Error:", result.error);
@@ -205,6 +207,16 @@ const Auth = () => {
             return;
         }
 
+        if (!data.paymentProof) {
+            toast({ title: "Proof Required", description: "Please upload the payment screenshot.", variant: "destructive" });
+            return;
+        }
+
+        if (!data.address || !data.city || !data.state || !data.zip || !data.phone) {
+            toast({ title: "Incomplete Details", description: "Please fill in all address and contact fields.", variant: "destructive" });
+            return;
+        }
+
         setIsLoading(true);
         // Simulate upload delay
         await new Promise(r => setTimeout(r, 1000));
@@ -237,6 +249,32 @@ const Auth = () => {
         setIsLoading(false);
     };
 
+
+    const handleResetPassword = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        const result = await resetPassword(data.email);
+        if (result.success) {
+            toast({ title: "Reset Email Sent", description: "Check your inbox for password reset instructions." });
+            setMode('client-login');
+        } else {
+            toast({ title: "Error", description: result.error, variant: "destructive" });
+        }
+        setIsLoading(false);
+    };
+
+    const handleUpdatePassword = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        const result = await updatePassword(data.password);
+        if (result.success) {
+            toast({ title: "Password Updated", description: "Your password has been changed successfully." });
+            setMode('client-login');
+        } else {
+            toast({ title: "Update Failed", description: result.error, variant: "destructive" });
+        }
+        setIsLoading(false);
+    };
 
     // Animations
     const backdropVariants = {
@@ -271,7 +309,7 @@ const Auth = () => {
             </button>
 
             {/* Main Container */}
-            <div className={`relative z-10 w-full px-6 transition-all duration-500 ease-in-out ${(mode === 'billing-summary' || mode === 'plan-selection' || mode === 'signup-step-2') ? 'max-w-[1600px]' : 'max-w-md'}`}>
+            <div className={`relative z-10 w-full px-6 pt-24 transition-all duration-500 ease-in-out ${(mode === 'billing-summary' || mode === 'plan-selection' || mode === 'signup-step-2') ? 'max-w-[1600px]' : 'max-w-md'}`}>
                 <AnimatePresence mode="wait">
 
                     {/* MODE: WELCOME */}
@@ -313,7 +351,12 @@ const Auth = () => {
                                         </div>
                                     </button>
 
-                                    {/* Client Login Button Removed as per request */}
+                                    <button
+                                        onClick={() => setMode('client-login')}
+                                        className="w-full bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white font-medium py-4 rounded-xl border border-white/5 hover:border-white/20 transition-all duration-300 hover:scale-[1.02]"
+                                    >
+                                        Client Login
+                                    </button>
 
                                     <button
                                         onClick={() => setMode('admin-login')}
@@ -360,7 +403,10 @@ const Auth = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-emerald-500/80 uppercase tracking-widest ml-1">Password</label>
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-xs font-bold text-emerald-500/80 uppercase tracking-widest ml-1">Password</label>
+                                        <button type="button" onClick={() => setMode('forgot-password')} className="text-xs text-slate-400 hover:text-emerald-400 transition-colors">Forgot Password?</button>
+                                    </div>
                                     <input name="password" type="password" value={data.password} onChange={handleChange} required
                                         className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-slate-700 font-medium tracking-widest"
                                         placeholder="••••••••"
@@ -409,6 +455,68 @@ const Auth = () => {
                                 </div>
                                 <Button className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 py-6 text-lg font-bold shadow-lg shadow-emerald-900/20 mt-4 border border-white/10" disabled={isLoading}>
                                     {isLoading ? <Loader2 className="animate-spin" /> : "Authenticate Session"}
+                                </Button>
+                            </form>
+                        </motion.div>
+                    )}
+
+                    {/* MODE: FORGOT PASSWORD */}
+                    {mode === 'forgot-password' && (
+                        <motion.div
+                            key="forgot-password"
+                            variants={backdropVariants}
+                            initial="hidden" animate="visible" exit="exit"
+                            className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl relative"
+                        >
+                            <button onClick={() => setMode('welcome')} className="absolute top-6 left-6 text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
+                                <ArrowLeft className="w-5 h-5" />
+                            </button>
+
+                            <div className="text-center mt-8 mb-8">
+                                <h2 className="text-2xl font-bold text-white tracking-tight">Recovery</h2>
+                                <p className="text-slate-400 text-sm mt-1">Enter your email to reset your password.</p>
+                            </div>
+
+                            <form onSubmit={handleResetPassword} className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-emerald-500/80 uppercase tracking-widest ml-1">Email Address</label>
+                                    <div className="relative group">
+                                        <input name="email" type="email" value={data.email} onChange={handleChange} required
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-slate-700 font-medium"
+                                            placeholder="you@email.com"
+                                        />
+                                    </div>
+                                </div>
+                                <Button className="w-full bg-indigo-600 hover:bg-indigo-500 py-6 text-lg font-bold shadow-lg shadow-indigo-900/20 mt-4 border border-white/10" disabled={isLoading}>
+                                    {isLoading ? <Loader2 className="animate-spin" /> : "Send Reset Link"}
+                                </Button>
+                            </form>
+                        </motion.div>
+                    )}
+
+                    {/* MODE: UPDATE PASSWORD */}
+                    {mode === 'update-password' && (
+                        <motion.div
+                            key="update-password"
+                            variants={backdropVariants}
+                            initial="hidden" animate="visible" exit="exit"
+                            className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl relative"
+                        >
+                            <div className="text-center mt-4 mb-8">
+                                <h2 className="text-2xl font-bold text-white tracking-tight">Set New Password</h2>
+                                <p className="text-slate-400 text-sm mt-1">Please create a strong password for your account.</p>
+                            </div>
+
+                            <form onSubmit={handleUpdatePassword} className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-emerald-500/80 uppercase tracking-widest ml-1">New Password</label>
+                                    <input name="password" type="password" value={data.password} onChange={handleChange} required minLength={6}
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-slate-700 font-medium tracking-widest"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                                <Button className="w-full bg-emerald-600 hover:bg-emerald-500 py-6 text-lg font-bold shadow-lg shadow-emerald-900/20 mt-4 border border-white/10" disabled={isLoading}>
+                                    {isLoading ? <Loader2 className="animate-spin" /> : "Update Password"}
                                 </Button>
                             </form>
                         </motion.div>
@@ -481,7 +589,7 @@ const Auth = () => {
                             </div>
 
                             {/* Pricing Plans - Full Width 4-Column Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8 mb-12 pt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-12 pt-4">
                                 {SUBSCRIPTION_PLANS.map((plan, index) => (
                                     <motion.div
                                         key={plan.id}
@@ -556,11 +664,10 @@ const Auth = () => {
                                             {/* Price Section */}
                                             <div className="mb-6">
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-lg text-slate-400 font-medium">₹</span>
-                                                    <span className={`text-4xl lg:text-5xl font-black tracking-tight transition-colors duration-300 ${selectedPlan.id === plan.id ? 'text-white' : 'text-white/90'}`}>
-                                                        {(plan.price / 1000).toFixed(0)}
+                                                    <span className="text-3xl text-slate-400 font-bold align-top mr-1">₹</span>
+                                                    <span className={`text-6xl font-black tracking-tight transition-colors duration-300 ${selectedPlan.id === plan.id ? 'text-white' : 'text-white/90'}`}>
+                                                        {plan.price.toLocaleString()}
                                                     </span>
-                                                    <span className="text-xl text-slate-400 font-semibold">,000</span>
                                                 </div>
                                                 {plan.savings && (
                                                     <motion.span
@@ -766,12 +873,13 @@ const Auth = () => {
                                                 value={data.phone}
                                                 onChange={handleChange}
                                                 placeholder="Mobile Number"
+                                                required // Mandatory
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-white focus:border-emerald-500/50 outline-none transition-all"
                                             />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-xs text-slate-500 uppercase font-bold tracking-wider">Country</label>
-                                            <input placeholder="Country" className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-white focus:border-emerald-500/50 outline-none transition-all" defaultValue="India" />
+                                            <input placeholder="Country" className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-white focus:border-emerald-500/50 outline-none transition-all" defaultValue="India" readOnly />
                                         </div>
                                     </div>
 
@@ -782,6 +890,7 @@ const Auth = () => {
                                             value={data.address}
                                             onChange={handleChange}
                                             placeholder="Street Address"
+                                            required // Mandatory
                                             className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-white focus:border-emerald-500/50 outline-none transition-all"
                                         />
                                     </div>
@@ -794,6 +903,7 @@ const Auth = () => {
                                                 value={data.city}
                                                 onChange={handleChange}
                                                 placeholder="City"
+                                                required // Mandatory
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-white focus:border-emerald-500/50 outline-none transition-all"
                                             />
                                         </div>
@@ -804,6 +914,7 @@ const Auth = () => {
                                                 value={data.state}
                                                 onChange={handleChange}
                                                 placeholder="State"
+                                                required // Mandatory
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-white focus:border-emerald-500/50 outline-none transition-all"
                                             />
                                         </div>
@@ -814,6 +925,7 @@ const Auth = () => {
                                                 value={data.zip}
                                                 onChange={handleChange}
                                                 placeholder="ZIP Code"
+                                                required // Mandatory
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-white focus:border-emerald-500/50 outline-none transition-all"
                                             />
                                         </div>
@@ -883,7 +995,7 @@ const Auth = () => {
                                 key="step2"
                                 variants={backdropVariants}
                                 initial="hidden" animate="visible" exit="exit"
-                                className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-10 shadow-2xl relative w-full max-w-5xl"
+                                className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 lg:p-12 shadow-2xl relative w-full max-w-[95vw] min-h-[80vh] flex flex-col"
                             >
                                 <div className="flex items-center justify-between mb-8">
                                     <button onClick={() => setMode('billing-summary')} className="text-slate-500 hover:text-white transition-colors p-3 hover:bg-white/10 rounded-xl border border-white/10">
@@ -897,59 +1009,21 @@ const Auth = () => {
                                     <p className="text-slate-400 text-base">Scan the QR code and upload your payment proof to finish registration.</p>
                                 </div>
 
-                                {/* Side-by-side Layout */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                                {/* Center Layout */}
+                                <div className="flex justify-center">
 
-                                    {/* Left Side: Large QR Code */}
-                                    <div className="flex flex-col items-center justify-center">
-                                        <div className="bg-white p-6 rounded-3xl w-full max-w-[320px] aspect-square flex items-center justify-center shadow-2xl shadow-emerald-900/30 relative overflow-hidden">
-                                            {/* Decorative corners */}
-                                            <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-emerald-500 rounded-tl-3xl" />
-                                            <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-emerald-500 rounded-tr-3xl" />
-                                            <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-emerald-500 rounded-bl-3xl" />
-                                            <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-emerald-500 rounded-br-3xl" />
-
-                                            {qrCodeUrl ? (
-                                                <img src={qrCodeUrl} alt="Payment QR" className="w-full h-full object-contain p-2" />
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <Loader2 className="animate-spin text-emerald-500 w-12 h-12 mb-3" />
-                                                    <span className="text-slate-400 text-sm">Loading QR Code...</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Amount Display under QR */}
-                                        <div className="mt-6 text-center">
-                                            <p className="text-slate-400 text-sm uppercase tracking-wider mb-1 font-bold">Amount to Pay</p>
-                                            <p className="text-4xl font-black text-white font-mono">₹{selectedPlan.price.toLocaleString()}</p>
-                                            <p className="text-emerald-400 text-sm mt-2 font-medium">{selectedPlan.name} Plan • {selectedPlan.duration}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Right Side: Payment Form */}
-                                    <div className="flex flex-col justify-center">
+                                    {/* Payment Form */}
+                                    <div className="w-full max-w-md">
                                         <form onSubmit={handleFinalSignup} className="space-y-6">
                                             {/* Instructions */}
-                                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 mb-2">
-                                                <h4 className="text-emerald-400 font-bold mb-3 flex items-center gap-2">
-                                                    <QrCode className="w-5 h-5" />
-                                                    Payment Instructions
+                                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 mb-6 text-center">
+                                                <h4 className="text-emerald-400 font-bold mb-2 flex items-center justify-center gap-2 text-xl">
+                                                    <QrCode className="w-6 h-6" />
+                                                    Payment Verification
                                                 </h4>
-                                                <ol className="text-sm text-slate-300 space-y-2">
-                                                    <li className="flex items-start gap-2">
-                                                        <span className="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-xs font-bold flex-shrink-0">1</span>
-                                                        <span>Open any UPI app (GPay, PhonePe, Paytm)</span>
-                                                    </li>
-                                                    <li className="flex items-start gap-2">
-                                                        <span className="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-xs font-bold flex-shrink-0">2</span>
-                                                        <span>Scan the QR code and complete payment</span>
-                                                    </li>
-                                                    <li className="flex items-start gap-2">
-                                                        <span className="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-xs font-bold flex-shrink-0">3</span>
-                                                        <span>Enter UTR/Reference number & upload screenshot</span>
-                                                    </li>
-                                                </ol>
+                                                <p className="text-slate-300 text-lg">
+                                                    Please upload the screenshot of your payment transaction.
+                                                </p>
                                             </div>
 
                                             {/* Transaction ID Input */}

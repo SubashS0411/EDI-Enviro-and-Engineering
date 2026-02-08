@@ -11,19 +11,22 @@ import { getRegistrationFee, updateRegistrationFee } from '@/lib/settingsService
 import { checkAndSendReminders } from '@/lib/emailService';
 
 const AdminDashboard = () => {
-    const { user, handleRequest, getQRCode, updateQRCode, logout } = useAuth();
+    const { user, handleRequest, logout } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
 
     const [allRequests, setAllRequests] = useState([]);
-    const [qrUrl, setQrUrl] = useState('');
-    const [isUpdatingQr, setIsUpdatingQr] = useState(false);
     const [selectedProof, setSelectedProof] = useState(null);
     const [loadingData, setLoadingData] = useState(true);
     const [approvalDuration, setApprovalDuration] = useState(12);
     const [isSendingReminders, setIsSendingReminders] = useState(false);
 
     const [currentFee, setCurrentFee] = useState('69.00');
+    const [selectedUser, setSelectedUser] = useState(null); // Added state for selected user
+
+    const openUserDetails = (user) => {
+        setSelectedUser(user);
+    };
 
     useEffect(() => {
         const loadFee = async () => {
@@ -60,8 +63,8 @@ const AdminDashboard = () => {
         }
 
         fetchData();
-        setQrUrl(getQRCode() || '');
-    }, [user, navigate, getQRCode]);
+        fetchData();
+    }, [user, navigate]);
 
     const onHandleRequest = async (id, action, duration) => {
         const result = await handleRequest(id, action, duration);
@@ -81,18 +84,7 @@ const AdminDashboard = () => {
         }
     };
 
-    const onUpdateQr = (file) => {
-        setIsUpdatingQr(true);
-        updateQRCode(file).then((result) => {
-            if (result.success) {
-                toast({ title: "QR Code Updated", description: "New payment QR code is now live." });
-                setQrUrl(result.url);
-            } else {
-                toast({ title: "Update Failed", description: result.error, variant: "destructive" });
-            }
-            setIsUpdatingQr(false);
-        });
-    };
+
 
     const handleSendReminders = async () => {
         setIsSendingReminders(true);
@@ -124,6 +116,7 @@ const AdminDashboard = () => {
 
             <div className="max-w-[1400px] mx-auto space-y-12 relative z-10">
                 {/* Header Section */}
+
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-8">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
@@ -186,49 +179,6 @@ const AdminDashboard = () => {
 
                     {/* Left Panel: Configuration (4 cols) */}
                     <div className="lg:col-span-4 space-y-6">
-
-                        {/* Payment QR Card */}
-                        <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="bg-[#0f1121]/60 backdrop-blur-2xl p-6 rounded-3xl border border-white/5 hover:border-indigo-500/30 transition-all duration-300 group"
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-bold flex items-center gap-2">
-                                    <QrCode className="w-5 h-5 text-indigo-400" /> Payment Gate
-                                </h3>
-                                <div className="w-2 h-2 rounded-full bg-indigo-500 group-hover:shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-shadow"></div>
-                            </div>
-
-                            <div className="relative aspect-square bg-gradient-to-br from-white/5 to-transparent rounded-2xl flex items-center justify-center border border-white/5 p-4 mb-4 overflow-hidden">
-                                {qrUrl ? (
-                                    <img src={qrUrl} alt="QR" className="w-full h-full object-contain drop-shadow-2xl" />
-                                ) : (
-                                    <div className="text-center text-slate-500 text-sm">No QR Configured</div>
-                                )}
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm">
-                                    <p className="text-white font-medium">Payment QR</p>
-                                </div>
-                            </div>
-
-                            <label className="block">
-                                <span className="sr-only">Upload QR</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => e.target.files?.[0] && onUpdateQr(e.target.files[0])}
-                                    className="block w-full text-sm text-slate-400
-                                    file:mr-4 file:py-2.5 file:px-4
-                                    file:rounded-full file:border-0
-                                    file:text-sm file:font-semibold
-                                    file:bg-indigo-600 file:text-white
-                                    hover:file:bg-indigo-500
-                                    cursor-pointer ring-1 ring-white/10 rounded-full bg-black/20"
-                                />
-                            </label>
-                        </motion.div>
-
                         {/* Settings Card */}
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
@@ -337,24 +287,17 @@ const AdminDashboard = () => {
                                                                 {req.full_name || 'Anonymous'}
                                                             </h4>
                                                             <div className={`w-2 h-2 rounded-full ${req.subscription_status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
-                                                                    req.subscription_status === 'disabled' ? 'bg-red-500' : 'bg-amber-500'
+                                                                req.subscription_status === 'disabled' ? 'bg-red-500' : 'bg-amber-500'
                                                                 }`} />
                                                         </div>
                                                         <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
                                                             <span>{req.email}</span>
-                                                            {req.transaction_id && (
-                                                                <span className="font-mono bg-white/5 px-1.5 rounded border border-white/5 text-slate-500">
-                                                                    #{req.transaction_id.substring(0, 6)}
-                                                                </span>
-                                                            )}
-                                                            {req.payment_proof_url && (
-                                                                <button
-                                                                    onClick={() => setSelectedProof(req.payment_proof_url)}
-                                                                    className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors"
-                                                                >
-                                                                    <Image className="w-3 h-3" /> View Proof
-                                                                </button>
-                                                            )}
+                                                            <button
+                                                                onClick={() => openUserDetails(req)}
+                                                                className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors underline decoration-indigo-500/30"
+                                                            >
+                                                                <FileText className="w-3 h-3" /> View Details
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -398,46 +341,134 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            {/* Proof Modal */}
+            {/* User Details Modal */}
             <AnimatePresence>
-                {selectedProof && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setSelectedProof(null)}>
+                {selectedUser && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setSelectedUser(null)}>
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="relative max-w-5xl max-h-[95vh] rounded-3xl overflow-hidden shadow-2xl bg-[#1a1b2e] border border-white/10 flex flex-col"
+                            className="relative w-full max-w-4xl max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl bg-[#1a1b2e] border border-white/10 flex flex-col"
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-start pointer-events-none">
-                                <span className="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium text-white border border-white/10 pointer-events-auto">
-                                    Payment Proof Preview
-                                </span>
+                            <div className="p-6 border-b border-white/10 bg-[#0f1121] flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <User className="w-5 h-5 text-indigo-400" />
+                                        Client Profile
+                                    </h2>
+                                    <p className="text-slate-400 text-xs mt-0.5">ID: {selectedUser.id}</p>
+                                </div>
                                 <button
-                                    onClick={() => setSelectedProof(null)}
-                                    className="bg-black/50 hover:bg-red-500/80 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10 pointer-events-auto"
+                                    onClick={() => setSelectedUser(null)}
+                                    className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-auto flex items-center justify-center bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-[#0f1121]">
-                                <img
-                                    src={selectedProof}
-                                    alt="Proof"
-                                    className="max-w-full max-h-[85vh] object-contain shadow-2xl"
-                                />
-                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-[#0f1121]/50">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {/* Column 1: Personal & Company Info */}
+                                    <div className="space-y-6">
+                                        <div className="bg-black/20 rounded-2xl p-5 border border-white/5">
+                                            <h3 className="text-indigo-400 text-xs font-bold uppercase tracking-wider mb-4">Account Information</h3>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="text-xs text-slate-500 block mb-1">Full Name</label>
+                                                    <p className="text-white font-medium">{selectedUser.full_name}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-slate-500 block mb-1">Email Details</label>
+                                                    <p className="text-white font-medium">{selectedUser.email}</p>
+                                                    {selectedUser.company_email && selectedUser.company_email !== selectedUser.email && (
+                                                        <p className="text-slate-400 text-sm mt-0.5">{selectedUser.company_email} (Company)</p>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-slate-500 block mb-1">Phone</label>
+                                                    <p className="text-white font-medium">{selectedUser.phone || selectedUser.company_phone || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-slate-500 block mb-1">Account Type</label>
+                                                    <span className={`inline-block px-2 py-1 rounded text-xs font-bold uppercase ${selectedUser.account_type === 'company' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                        {selectedUser.account_type || 'individual'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                            <div className="p-4 bg-[#1a1b2e] border-t border-white/10 flex justify-center gap-4">
-                                <a
-                                    href={selectedProof}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-colors border border-white/5"
-                                >
-                                    <Maximize2 className="w-4 h-4" /> Open Full Resolution
-                                </a>
+                                        {selectedUser.account_type === 'company' && (
+                                            <div className="bg-black/20 rounded-2xl p-5 border border-white/5">
+                                                <h3 className="text-purple-400 text-xs font-bold uppercase tracking-wider mb-4">Company Details</h3>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="text-xs text-slate-500 block mb-1">Organization Name</label>
+                                                        <p className="text-white font-medium">{selectedUser.company_name}</p>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-slate-500 block mb-1">GSTIN</label>
+                                                        <p className="text-white font-mono">{selectedUser.company_gst || 'N/A'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="bg-black/20 rounded-2xl p-5 border border-white/5">
+                                            <h3 className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">Address</h3>
+                                            <p className="text-slate-300 leading-relaxed">
+                                                {selectedUser.billing_address || selectedUser.company_address}<br />
+                                                {selectedUser.city && `${selectedUser.city}, `}
+                                                {selectedUser.state} {selectedUser.zip}<br />
+                                                {selectedUser.country}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Column 2: Payment & Proof */}
+                                    <div className="space-y-6">
+                                        <div className="bg-black/20 rounded-2xl p-5 border border-white/5">
+                                            <h3 className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">Payment Verification</h3>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="text-xs text-slate-500 block mb-1">Transation ID / UTR</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-white font-mono text-lg">{selectedUser.transaction_id || 'N/A'}</p>
+                                                        {selectedUser.transaction_id && <Check className="w-4 h-4 text-emerald-500" />}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-xs text-slate-500 block mb-3">Payment Proof Screenshot</label>
+                                                    {selectedUser.payment_proof_url ? (
+                                                        <div className="rounded-xl overflow-hidden border border-white/10 bg-black/50 relative group">
+                                                            <img
+                                                                src={selectedUser.payment_proof_url}
+                                                                alt="Payment Proof"
+                                                                className="w-full h-auto max-h-[300px] object-cover"
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <a
+                                                                    href={selectedUser.payment_proof_url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="bg-white text-black px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 transition-all"
+                                                                >
+                                                                    <Maximize2 className="w-4 h-4" /> Open Full Image
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-32 bg-white/5 rounded-xl border border-dashed border-white/10 flex items-center justify-center text-slate-500">
+                                                            No screenshot uploaded
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                     </div>

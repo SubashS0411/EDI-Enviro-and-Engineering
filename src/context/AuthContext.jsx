@@ -68,60 +68,7 @@ export const AuthProvider = ({ children }) => {
 
   // --- Client Request Functions ---
 
-  const updateQRCode = useCallback(async (file) => {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `payment-qr-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
 
-      // 1. Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('assets')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // 2. Get Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(filePath);
-
-      // 3. Save URL to a centralized config? 
-      // For simplicity, we are simulating a persistent config. 
-      // Ideally, we'd have a 'system_config' table. 
-      // For this demo, let's just return the URL and let the dashboard use it (it won't persist across reloads unless we save it).
-      // Let's create a quick 'system_config' table entry or just use a known path if we overwrite?
-      // Better: We overwrite 'current-qr.png' so the URL is stable!
-
-      // REVISED STRATEGY: Overwrite a specific file for persistence without a DB table
-      const fixedPath = 'current-qr-code';
-
-      await supabase.storage.from('assets').remove([fixedPath]); // Remove old
-
-      const { error: overwriteError } = await supabase.storage
-        .from('assets')
-        .upload(fixedPath, file, { upsert: true });
-
-      if (overwriteError) throw overwriteError;
-
-      const { data: { publicUrl: fixedUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(fixedPath);
-
-      // Hack to bust cache
-      return { success: true, url: fixedUrl + '?t=' + Date.now() };
-
-    } catch (error) {
-      console.error("QR Upload Error:", error);
-      return { success: false, error: error.message };
-    }
-  }, []);
-
-  const getQRCode = useCallback(() => {
-    // Return the stable URL
-    const { data } = supabase.storage.from('assets').getPublicUrl('current-qr-code');
-    return data.publicUrl;
-  }, []);
 
   const submitSignupRequest = useCallback(async (requestData) => {
     // requestData: { name, email, password, paymentProof (File or ID), transactionId }
@@ -139,8 +86,8 @@ export const AuthProvider = ({ children }) => {
           .upload(fileName, file);
 
         if (uploadError) {
-          console.warn("Proof upload failed:", uploadError);
-          // Continue without proof? Or fail? Let's just log it for now.
+          console.error("Proof upload failed:", uploadError);
+          throw new Error("Failed to upload payment proof. Please try again.");
         } else {
           const { data: { publicUrl } } = supabase.storage
             .from('assets')
@@ -150,6 +97,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       console.error("Upload Logic Error:", err);
+      return { success: false, error: err.message || "Upload failed." };
     }
 
     // 2. Sign Up User in Auth
@@ -165,13 +113,21 @@ export const AuthProvider = ({ children }) => {
           payment_proof_url: paymentProofUrl, // New URL field
           subscription_status: 'pending',
           /* Company / Billing Details Map */
-          // Stores consolidated address and company info
+          account_type: requestData.accountType,
           company_name: requestData.accountType === 'company' ? (requestData.companyName || '') : '',
           company_gst: requestData.accountType === 'company' ? (requestData.companyGst || '') : '',
-          // Construct full address string
+
+          // Address Details
+          billing_address: requestData.address || '',
+          city: requestData.city || '',
+          state: requestData.state || '',
+          zip: requestData.zip || '',
+          phone: requestData.phone || '',
+          country: 'India', // Default as per UI
+
+          // Legacy composite fields (kept for safety)
           company_address: `${requestData.address || ''}, ${requestData.city || ''}, ${requestData.state || ''} - ${requestData.zip || ''}`,
           company_phone: requestData.phone || '',
-          // Use main email as contact email (can be distinct if needed, but simplified here)
           company_email: requestData.companyEmail || requestData.email
         }
       }
@@ -279,19 +235,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
 
-  const value = useMemo(() => ({
-    user,
-    loading,
-    login,
-    logout,
-    // New Exports
-    getQRCode,
-    submitSignupRequest,
-    updateQRCode,
-    getRequests,
-    handleRequest,
-    resendVerification
-  }), [user, loading, login, logout, getQRCode, submitSignupRequest, updateQRCode, getRequests, handleRequest]);
+
 
   // New Helper: Resend Verification
   async function resendVerification(email) {
@@ -302,6 +246,44 @@ export const AuthProvider = ({ children }) => {
     if (error) return { success: false, error: error.message };
     return { success: true };
   }
+
+  // New Helper: Reset Password
+  const resetPassword = useCallback(async (email) => {
+    // Determine redirect URL (e.g., to a dedicated reset page or just back to login)
+    // For now, let's redirect to the auth page with mode=reset-password if supported, 
+    // or just the root. Supabase handles the link.
+    const redirectTo = window.location.origin + '/auth?mode=update-password';
+
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectTo,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  }, []);
+
+  // New Helper: Update Password
+  const updatePassword = useCallback(async (newPassword) => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  }, []);
+
+  const value = useMemo(() => ({
+    user,
+    loading,
+    login,
+    logout,
+    submitSignupRequest,
+    getRequests,
+    handleRequest,
+    resendVerification,
+    resetPassword,
+    updatePassword
+  }), [user, loading, login, logout, submitSignupRequest, getRequests, handleRequest, resetPassword, updatePassword]);
 
   return (
     <AuthContext.Provider value={value}>

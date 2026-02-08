@@ -575,9 +575,48 @@ const Step1 = ({
         {selectedSections.includes('Anaerobic Section') && (
           <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
             <h4 className="font-bold text-emerald-800 mb-3">Anaerobic Section</h4>
-            <div className="grid md:grid-cols-3 gap-4">
-              <InputField label="Anaerobic sCOD Removal (%)" value={guarantees.anaerobicSCODEff} onChange={v => setGuarantees(prev => ({ ...prev, anaerobicSCODEff: v }))} type="number" />
-              <InputField label="Anaerobic BOD Removal (%)" value={guarantees.anaerobicBODEff} onChange={v => setGuarantees(prev => ({ ...prev, anaerobicBODEff: v }))} type="number" />
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <InputField
+                  label="Anaerobic sCOD Removal (%)"
+                  value={guarantees.anaerobicSCODEff}
+                  onChange={v => setGuarantees(prev => ({ ...prev, anaerobicSCODEff: v }))}
+                  type="number"
+                />
+                <div className="bg-white p-3 rounded border border-emerald-100">
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Calculated Anaerobic Outlet sCOD (Aerobic Inlet)</label>
+                  <div className="text-lg font-mono font-bold text-emerald-700">
+                    {(() => {
+                      const feed = parseFloat(anaerobicFeedParams.find(p => p.name === 'sCOD')?.value || 0);
+                      const eff = parseFloat(guarantees.anaerobicSCODEff || 0);
+                      const outlet = feed * (1 - eff / 100);
+                      return `${outlet.toFixed(0)} mg/l (${(100 - eff).toFixed(0)}%)`;
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <InputField
+                  label="Anaerobic BOD Removal (%)"
+                  value={guarantees.anaerobicBODEff}
+                  onChange={v => setGuarantees(prev => ({ ...prev, anaerobicBODEff: v }))}
+                  type="number"
+                />
+                <div className="bg-white p-3 rounded border border-emerald-100">
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Calculated Anaerobic Outlet BOD</label>
+                  <div className="text-lg font-mono font-bold text-emerald-700">
+                    {(() => {
+                      const feed = parseFloat(anaerobicFeedParams.find(p => p.name === 'BOD')?.value || 0);
+                      const eff = parseFloat(guarantees.anaerobicBODEff || 0);
+                      const outlet = feed * (1 - eff / 100);
+                      return `${outlet.toFixed(0)} mg/l (${(100 - eff).toFixed(0)}%)`;
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
               <InputField label="Biogas Factor (m³/kg COD)" value={guarantees.biogasFactor} onChange={v => setGuarantees(prev => ({ ...prev, biogasFactor: v }))} placeholder="0.40 - 0.45" />
             </div>
           </div>
