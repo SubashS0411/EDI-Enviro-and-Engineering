@@ -343,16 +343,23 @@ export const generateProposalWord = async (data) => {
             createHeading("2. Influent Parameters"),
             createSimpleTable(
                 ["Parameter", "Unit", "Inlet Water Characteristics", "Anaerobic Feed Water Characteristics"],
-                staticDesignBasis.parameters.map(p => {
-                    const userParam = params.find(up => (up.name === p.param) || (up.id === p.sn)); // Best effort match
-                    const userAnaParam = anaerobicFeedParams.find(up => (up.name === p.param) || (up.id === p.sn));
-                    return [
-                        safeString(p.param),
-                        safeString(p.unit),
-                        safeString(userParam ? userParam.value : p.raw),
-                        safeString(userAnaParam ? userAnaParam.value : p.anaInlet)
-                    ];
-                }),
+                [
+                    ...staticDesignBasis.parameters.map(p => {
+                        const userParam = params.find(up => (up.name === p.param) || (up.id === p.sn)); // Best effort match
+                        const userAnaParam = anaerobicFeedParams.find(up => (up.name === p.param) || (up.id === p.sn));
+                        return [
+                            safeString(p.param),
+                            safeString(p.unit),
+                            safeString(userParam ? userParam.value : p.raw),
+                            safeString(userAnaParam ? userAnaParam.value : p.anaInlet)
+                        ];
+                    }),
+                    // Calculated Loads
+                    ["sCOD Load", "kg/day", safeString(clientInfo.inletSCODLoad), safeString(clientInfo.anaerobicSCODLoad)],
+                    ["BOD Load", "kg/day", safeString(clientInfo.inletBODLoad), safeString(clientInfo.anaerobicBODLoad)],
+                    ["Nitrogen (N) Load", "kg/day", safeString(clientInfo.inletNLoad), safeString(clientInfo.anaerobicNLoad)],
+                    ["Phosphorus (P) Load", "kg/day", safeString(clientInfo.inletPLoad), safeString(clientInfo.anaerobicPLoad)]
+                ],
                 [25, 15, 30, 30]
             ),
             createParagraph("Notes:", { spacingBefore: 240, textOptions: { bold: true } }),
@@ -1074,6 +1081,47 @@ export const generateProposalWord = async (data) => {
                     [50, 50]
                 ));
             }
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+        }
+
+        // 4.19.3 UV Disinfection System
+        if (selectedSections.includes('UV Section')) {
+            sections.push(createHeading("4.19.3 UV Disinfection System", 2));
+            // Access UV data from input or fallback
+            // IMPORTANT: uvGuarantees is inside data object if not destructured
+            const uv = data.uvGuarantees || {};
+
+            sections.push(createHeading("Outcome Guarantees", 3));
+            sections.push(createSimpleTable(
+                ["Parameter", "Guaranteed Value"],
+                [
+                    ["Bacterial Count", safeString(uv.bacterialCount)],
+                    ["Outlet sCOD", `${safeString(uv.outletSCOD)} mg/l`],
+                    ["Outlet TSS", `${safeString(uv.outletTSS)} mg/l`],
+                    ["Outlet TDS", `${safeString(uv.outletTDS)} mg/l`]
+                ],
+                [50, 50]
+            ));
+            sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
+        }
+
+        // 4.19.4 RO System
+        if (selectedSections.includes('RO Permeate Section')) {
+            sections.push(createHeading("4.19.4 RO System (Reverse Osmosis)", 2));
+            const ro = data.roGuarantees || {};
+
+            sections.push(createHeading("Outcome Guarantees (Permeate)", 3));
+            sections.push(createSimpleTable(
+                ["Parameter", "Guaranteed Value"],
+                [
+                    ["Outlet pH", safeString(ro.outletPH)],
+                    ["Outlet sCOD", `${safeString(ro.outletSCOD)} mg/l`],
+                    ["Outlet BOD", `${safeString(ro.outletBOD)} mg/l`],
+                    ["Outlet TSS", `${safeString(ro.outletTSS)} mg/l`],
+                    ["Outlet TDS", `${safeString(ro.outletTDS)} mg/l`]
+                ],
+                [50, 50]
+            ));
             sections.push(new Paragraph({ text: "", spacing: { before: 120 } }));
         }
 
